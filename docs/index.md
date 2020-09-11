@@ -6,7 +6,7 @@
 </h3>
 
 # Tim Sierk
-![My picture](/Images/tim.jpg)
+![My picture](./images/tim.jpg)
 
 
 
