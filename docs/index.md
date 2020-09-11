@@ -1,12 +1,12 @@
-<h3 style="color:White;background-image:linear-gradient(DarkSlateGray,DimGray)">&nbsp; <small>Tim Sierk - ECE 4960&emsp;
-<a href="./labs.md">&emsp;Labs&emsp;</a>&emsp;
+<h3 style="color:White;background-image:linear-gradient(DarkSlateGray,DimGray)">&nbsp; <small>
+<a href="./labs.html">&emsp;Labs&emsp;</a>&emsp;
 <a href="https://github.com/kreismit/ECE4960/tree/master/Notes">&emsp;Class Notes&emsp;</a>&emsp;
 <a href="https://github.com/kreismit/ECE4960/tree/master/">&emsp;Code&emsp;</a>
-<a href="./index.md">&emsp;About&emsp;</a></small>
+<a href="./index.html">&emsp;About&emsp;</a></small>
 </h3>
 
 # Tim Sierk
-![My picture](../Images/tim.jpg)
+![My picture](/Images/tim.jpg)
 
 
 
