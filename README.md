@@ -1,37 +1,17 @@
-## Welcome to GitHub Pages
+## Cornell University ECE 4960: Fast Robots
 
-You can use the [editor on GitHub](https://github.com/kreismit/ECE4960/edit/master/README.md) to maintain and preview the content for your website in Markdown files.
+This repository contains the coursework and a student site for [ECE 4960](https://cei-lab.github.io/ECE4960/). The student site is published using [Github Pages](https://pages.github.com).
+See [https://kreismit.github.io/ECE4960] for my student landing page.
+Also feel free to browse my course notes.
 
-Whenever you commit to this repository, GitHub Pages will run [Jekyll](https://jekyllrb.com/) to rebuild the pages in your site, from the content in your Markdown files.
+### Code and Files
 
-### Markdown
+Since the course is broken up into labs, see the Lab 1 directory for code corresponding to Lab 1, and so on. Each lab lives in its own folder.
 
-Markdown is a lightweight and easy-to-use syntax for styling your writing. It includes conventions for
+### Thanks
 
-```markdown
-Syntax highlighted code block
+Many thanks to [adam-p](https://github.com/adam-p/) for his great [Markdown Cheatsheet](https://github.com/adam-p/markdown-here/wiki/Markdown-Cheatsheet). I have referenced this frequently.
 
-# Header 1
-## Header 2
-### Header 3
+Also, credit goes to the [2017 ECE 3400](https://cei-lab.github.io/ece3400-2017/) course site for open-source examples which helped me set up my site.
 
-- Bulleted
-- List
-
-1. Numbered
-2. List
-
-**Bold** and _Italic_ and `Code` text
-
-[Link](url) and ![Image](src)
-```
-
-For more details see [GitHub Flavored Markdown](https://guides.github.com/features/mastering-markdown/).
-
-### Jekyll Themes
-
-Your Pages site will use the layout and styles from the Jekyll theme you have selected in your [repository settings](https://github.com/kreismit/ECE4960/settings). The name of this theme is saved in the Jekyll `_config.yml` configuration file.
-
-### Support or Contact
-
-Having trouble with Pages? Check out our [documentation](https://docs.github.com/categories/github-pages-basics/) or [contact support](https://github.com/contact) and we’ll help you sort it out.
+Finally, here's a shout-out to the _awesome_ [course staff](https://cei-lab.github.io/ECE4960/TeachingTeam/) for ECE 4960!
