@@ -1,5 +1,13 @@
-# Homepage for Tim Sierk
+<h3 style="color:White;background-image:linear-gradient(DarkSlateGray,DimGray)">&nbsp; <small>Tim Sierk - ECE 4960
+<a href="labs.md">&emsp;Labs&emsp;</a>&emsp;
+<a href="https://github.com/kreismit/ECE4960/tree/master/Notes">&emsp;Class Notes&emsp;</a>&emsp;
+<a href="https://github.com/kreismit/ECE4960/tree/master/">&emsp;Code&emsp;</a></small>
+</h3>
+
+# Tim Sierk
 ![My picture](Images/tim.jpg)
+
+
 
 I'm a student in [ECE 4960: Fast Robots](https://cei-lab.github.io/ECE4960/).
 
