@@ -1,7 +1,7 @@
 ## Cornell University ECE 4960: Fast Robots
 
 This repository contains the coursework and a student site for [ECE 4960](https://cei-lab.github.io/ECE4960/). The student site is published using [Github Pages](https://pages.github.com).
-See [https://kreismit.github.io/ECE4960] for my student landing page.
+See <https://kreismit.github.io/ECE4960> for my student landing page.
 Also feel free to browse my course notes.
 
 ### Code and Files
