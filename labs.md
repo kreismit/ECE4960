@@ -8,5 +8,9 @@
 # Lab 1
 
 The purpose of this lab was to get acquainted with the [SparkFun Artemis Nano](https://www.sparkfun.com/products/15443) and with our custom Ubuntu VM.
-
+<video width="600" height="400"><source src="Lab1/Videos/Blink.mp4" type="video/mp4"></video>
+<video width="600" height="400"><source src="Lab1/Videos/Serial.mp4" type="video/mp4"></video>
+<video width="600" height="400"><source src="Lab1/Videos/Analog.mp4" type="video/mp4"></video>
+<video width="600" height="400"><source src="Lab1/Videos/Microphone.mp4" type="video/mp4"></video>
+<video width="600" height="400"><source src="Lab1/Videos/WhistleDetect.mp4" type="video/mp4"></video>
 # Lab 2

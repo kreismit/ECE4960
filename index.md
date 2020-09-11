@@ -6,7 +6,7 @@
 </h3>
 
 # Tim Sierk
-![My picture](./images/tim.jpg)
+<img src="./images/tim.jpg" style="width:600px;height:600px;">
 
 
 
