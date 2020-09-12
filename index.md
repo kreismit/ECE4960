@@ -1,5 +1,5 @@
 # Tim Sierk
-<img src="./assets/images/tim.jpg" style="width:600px;height:600px;">
+<img src="/assets/images/tim.jpg" style="width:600px;height:600px;">
 
 I'm a student in [ECE 4960: Fast Robots](https://cei-lab.github.io/ECE4960/).
 
