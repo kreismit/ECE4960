@@ -86,3 +86,25 @@ I commented out all the serial lines of code so that the board would not attempt
 [See my code for Lab 1 here.](https://github.com/kreismit/ECE4960/tree/master/Lab1)
 
 # Lab 2
+
+## Goal
+
+## Materials
+
+* 1 Artemis Nano
+* 1 USB dongle
+* 1 computer running the Ubuntu 18 VM
+
+
+## Procedure
+
+
+
+## Results and Lessons Learned
+
+<image src="Lab2/bluetooth_discovery.png">
+
+At first, VirtualBox saw neither the Bluetooth module in my laptop nor the USB dongle in the lab kit. However, my laptop's host OS saw both. After a quick web search, I found [this useful SuperUser post](https://superuser.com/questions/956622/no-usb-devices-available-in-virtualbox) which points out that users must be part of the `vboxusers` group or else no USB devices are accessible from VirtualBox. Adding my user to the group made the VM see both my laptop's Bluetooth radio and the USB dongle.
+
+Another surprise I shouldn't have experienced was that the code didn't run when I executed `python main.py`. However, opening the file and noticing that it started with `#!/usr/bin/env python3` I realized it would run as a script, and it worked. This pointed out to me that `python` was mapped to `python2.7` and not `python3`. Always check versions.
+
