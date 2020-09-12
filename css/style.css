@@ -1,10 +1,12 @@
 .header {
-	color:White;
-	background-image:linear-gradient(DarkSlateGray,DimGray)
-	
+	color: White;
+    padding: 6px;
+	background-image: linear-gradient(DarkSlateGray,DimGray)
 }
 .header a:link, a:visited {
-	color: White;
-	background-color:DarkSlateGray;
-	background-image:linear-gradient(DarkSlateGray,DimGray)
+  color: White;
+  text-decoration: None;
+}
+.header a:hover {
+  color: FireBrick;
 }
