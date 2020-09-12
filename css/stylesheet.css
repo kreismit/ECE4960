@@ -6,4 +6,5 @@
 .header a:link, a:visited {
 	color: White;
 	background-color:DarkSlateGray;
+	background-image:linear-gradient(DarkSlateGray,DimGray)
 }
