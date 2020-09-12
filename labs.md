@@ -79,6 +79,10 @@ if(ui32LoudestFrequency>800 && ui32LoudestFrequency<2000)
 This worked well. (It also picked up my squeaky chair or tapping on my desk.)
 <video width="600" height="400"><source src="Lab1/Videos/WhistleDetect.mp4" type="video/mp4" controls></video>
 
+While the Artemis Nano was plugged into my computer, plugging the battery in lit the yellow CHG light.
+
+I commented out all the serial lines of code so that the board would not attempt to establish serial communication with my computer. Then, the board would recognize my whistle on battery too.
+
 [See my code for Lab 1 here.](https://github.com/kreismit/ECE4960/tree/master/Lab1)
 
 # Lab 2
