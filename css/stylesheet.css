@@ -1,0 +1,9 @@
+.header {
+	color:White;
+	background-image:linear-gradient(DarkSlateGray,DimGray)
+	
+}
+.header a:link, a:visited {
+	color: White;
+	background-color:DarkSlateGray;
+}
