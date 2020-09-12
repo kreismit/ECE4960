@@ -11,7 +11,7 @@ The purpose of this lab was to get acquainted with the [SparkFun Artemis Nano](h
 * 1 SparkFun Artemis RedBoard Nano
 * 1 USB A-C cable
 * 1 lithium-polymer rechargeable battery
-* 1 laptop (Arch Linux 5.8)
+* 1 laptop
 
 ## Procedure
 
@@ -85,7 +85,7 @@ I commented out all the serial lines of code so that the board would not attempt
 
 [See my code for Lab 1 here.](https://github.com/kreismit/ECE4960/tree/master/Lab1)
 
-# Lab 2
+<h1 id="Lab 2"> Lab 2</h1>
 
 ## Goal
 
@@ -98,7 +98,10 @@ I commented out all the serial lines of code so that the board would not attempt
 
 ## Procedure
 
-
+Downloaded the [distribution code](https://cei-lab.github.io/ECE4960/ece4960lab2dist.zip).
+(Re)installed `bleak` using `pip install bleak` at the command line.
+Downloaded the sketch `ECE_4960_robot` to the Artemis and opened the serial monitor at 115200 baud.
+In the `ece4960lab2dist` folder, ran `./main.py` twice while the Artemis Nano was powered on to discover the board.
 
 ## Results and Lessons Learned
 
