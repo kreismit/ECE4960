@@ -10,3 +10,11 @@
 
 a.navbar:link {color:White;}
 a.navbar:visited {color:White;}
+.sticky {
+  position: fixed;
+  top: 0;
+  width: 100%;
+}
+.sticky + .content {
+  padding-top: 102px;
+}

@@ -17,7 +17,7 @@
     <div id="container">
       <div class="inner">
 
-        <div class="header">
+        <div class="header" id="navbar">
           <!--<h1>{{ page.title | default: site.title | default: site.github.repository_name }}</h1> -->
           <h2>{{ page.description | default: site.description | default: site.github.project_tagline }}</h2>
 		<big><b>
@@ -43,7 +43,21 @@
         <section id="main_content">
           {{ content }}
         </section>
+	
+	<script>
+	window.onscroll = function() {myFunction()};
 
+	var header = document.getElementById("navbar");
+	var sticky = header.offsetTop;
+
+	function myFunction() {
+	  if (window.pageYOffset > sticky) {
+	    header.classList.add("sticky");
+	  } else {
+	    header.classList.remove("sticky");
+	  }
+	}
+	</script>
         <footer>
         {% if site.github.is_project_page %}
           {{ site.title | default: site.github.repository_name }} is maintained by <a href="{{ site.github.owner_url }}">{{ site.github.owner_name }}</a><br>

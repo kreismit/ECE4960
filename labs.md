@@ -1,6 +1,6 @@
-<h4 style="background-color:LightGray"><a href="#Lab 1">&emsp;Lab 1&emsp;</a><a href="#Lab 2">&emsp;Lab 2&emsp;</a></h4>
+<h4 style="background-color:LightGray"><a href="#L1">&emsp;Lab 1&emsp;</a><a href="#L2">&emsp;Lab 2&emsp;</a></h4>
 
-# Lab 1
+<h1 id="L1"> Lab 1</h1>
 
 ## Goal
 
@@ -85,7 +85,7 @@ I commented out all the serial lines of code so that the board would not attempt
 
 [See my code for Lab 1 here.](https://github.com/kreismit/ECE4960/tree/master/Lab1)
 
-<h1 id="Lab 2"> Lab 2</h1>
+<h1 id="L2"> Lab 2</h1>
 
 ## Goal
 
