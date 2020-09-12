@@ -51,16 +51,16 @@ Note that the exact requirements for this rule depend on the computer and the di
 
 ### Testing
 The Blink example worked, blinking the blue LED labeled 19.
-<video width="600" height="400"><source src="Lab1/Videos/Blink.mp4" type="video/mp4" controls></video>
+<video width="600"><source src="Lab1/Videos/Blink.mp4" type="video/mp4" controls></video>
 
 The Serial example both input and output text via the USB serial connection.
-<video width="600" height="400"><source src="Lab1/Videos/Serial.mp4" type="video/mp4" controls></video>
+<video width="600"><source src="Lab1/Videos/Serial.mp4" type="video/mp4" controls></video>
 
 The analogRead sketch read temperature values which noticeably rose as I held my warm thumb against the device.
-<video width="600" height="400"><source src="Lab1/Videos/Analog.mp4" type="video/mp4" controls></video>
+<video width="600"><source src="Lab1/Videos/Analog.mp4" type="video/mp4" controls></video>
 
 The Microphone example showed that the loudest frequency doubled when I whistled an octave, indicating that the microphone is working well.
-<video width="600" height="400"><source src="Lab1/Videos/Microphone.mp4" type="video/mp4" controls></video>
+<video width="600"><source src="Lab1/Videos/Microphone.mp4" type="video/mp4" controls></video>
 
 I added two pieces of code to the Microphone example to make it blink the LED when I whistle.
 
@@ -77,7 +77,7 @@ if(ui32LoudestFrequency>800 && ui32LoudestFrequency<2000)
 ```
 
 This worked well. (It also picked up my squeaky chair or tapping on my desk.)
-<video width="600" height="400"><source src="Lab1/Videos/WhistleDetect.mp4" type="video/mp4" controls></video>
+<video width="600"><source src="Lab1/Videos/WhistleDetect.mp4" type="video/mp4" controls></video>
 
 While the Artemis Nano was plugged into my computer, plugging the battery in lit the yellow CHG light.
 
