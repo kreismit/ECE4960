@@ -1,4 +1,4 @@
-<h4 style="background-color:LightGray" id="navbar"><a href="#L1">&emsp;Lab 1&emsp;</a><a href="#L2">&emsp;Lab 2&emsp;</a></h4>
+<h4 style="background-color:LightGray" id="navbar"><a href="#L1">&emsp;Lab 1&emsp;</a><a href="#L2">&emsp;Lab 2&emsp;</a><a href="#L3">&emsp;Lab 3&emsp;</a><a href="#L4">&emsp;Lab 4&emsp;</a><a href="#L5">&emsp;Lab 5&emsp;</a><a href="#L6">&emsp;Lab 6&emsp;</a></h4>
 
 <h1 id="L1"> Lab 1</h1>
 
