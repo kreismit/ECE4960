@@ -8,10 +8,6 @@
     padding: 6px;
 	background-image: linear-gradient(DarkSlateGray,DimGray)
 }
-.header a:link, a:visited {
-  color: White;
-  text-decoration: None;
-}
-.header a:hover {
-  color: FireBrick;
-}
+
+a.navbar:link {color:White;}
+a.navbar:visited {color:White;}
