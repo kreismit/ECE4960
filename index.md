@@ -1,19 +1,3 @@
-<style>
-	a{
-		color: White;
-	}
-</style>
-<h3 style="color:White;background-image:linear-gradient(DarkSlateGray,DimGray)">&nbsp; <small>
-<a href="./labs.html">&emsp;Labs&emsp;</a>&emsp;
-<a href="https://github.com/kreismit/ECE4960/tree/master/Notes">&emsp;Class Notes&emsp;</a>&emsp;
-<a href="https://github.com/kreismit/ECE4960/tree/master/">&emsp;Code&emsp;</a>
-<a href="./index.html">&emsp;About&emsp;</a></small>
-</h3>
-<style>
-	a{
-		color: FireBrick;
-	}
-</style>
 # Tim Sierk
 <img src="./images/tim.jpg" style="width:600px;height:600px;">
 
