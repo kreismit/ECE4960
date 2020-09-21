@@ -129,44 +129,58 @@ In `main.py`, commented `await theRobot.ping()` and uncommented `await theRobot.
 
 ### Bytestream Test
 
-In `main.py`, commented `await theRobot.sendCommand(Commands.REQ_FLOAT)` and uncommented `await theRobot.testByteStream(25)`. Added the following code to `ECE_4960_robot.ino` under `if (bytestream_active)`:
+In `main.py`, commented `await theRobot.sendCommand(Commands.REQ_FLOAT)` and uncommented `await theRobot.testByteStream(25)`. Added the following code to `ECE_4960_robot.ino` within `if (bytestream_active)`:
 
 ```c++
-Serial.printf("Stream %d \n", bytestream_active);
-    res_cmd->command_type = BYTESTREAM_TX;
-    // Two bytes for command_type and for length; then
-    res_cmd->length = 6; // 4 bytes for the data
-    // "unpack requires a buffer of 4 bytes"
-    start=micros();
-    // Use the largest numbers available in these sizes so we know the sizes
-    uint32_t integer32 = 32;
-    uint64_t integer64 = 64;
-    uint32_t *p32;
-    uint64_t *p64;
-    switch(bytestream_active){
-      case 4: //asked for a 4-byte number!
-      p32=(uint32_t*) res_cmd->data;
-      for(int i=0; i<5; i++){
-          memcpy(p32, &integer32, sizeof(integer32));
-          p32++;
-        }
-        break;
-      case 8: //asked for an 8-byte number!
-      default: // the default is to send a 64-bit (8-byte) array
-        p64=(uint64_t*) res_cmd->data;
-        for(int i=0; i<5; i++){
-          memcpy(p64, &integer64, sizeof(integer64));
-          p64++;
-        }
-        break;
+//Serial.printf("Stream %d \n", bytestream_active);
+int numInts = 3;          // how many integers will fit in this stream
+bytestreamCount++;        // we are sending one bytestream now
+res_cmd->command_type = BYTESTREAM_TX;
+// Two bytes for command_type and for length;
+res_cmd->length=2+bytestream_active*numInts; // then 4 bytes for each uint32_t and 8 for each uint64_t
+start=micros();
+uint32_t integer32 = 32;  // different values to indicate whether we're getting a 32-bit
+uint64_t integer64 = 64;  // or a 64-bit number
+uint32_t *p32;            // pointers to the appropriate data types
+uint64_t *p64;
+switch(bytestream_active){
+  case 4:                 //asked for a 4-byte number!
+  p32=(uint32_t*) res_cmd->data;
+  for(int i=0; i<numInts-2; i++){ // the -2 is so the last two values can be the time and the count
+      memcpy(p32, &integer32, sizeof(integer32));
+      p32++;                      // move 4 bits down the array
     }
-    amdtpsSendData((uint8_t *)res_cmd, res_cmd->length);
-    Serial.printf("Finished sending bytestream after %u microseconds\n",micros()-start);
+    memcpy(p32, &bytestreamCount, sizeof(bytestreamCount));
+    p32++;
+    memcpy(p32, &start, sizeof(start));
+    break;
+  case 8:               //asked for an 8-byte number!
+  default:              // the default is to send a 64-bit (8-byte) array
+    p64=(uint64_t*) res_cmd->data;
+    for(int i=0; i<numInts-2; i++){
+      memcpy(p64, &integer64, sizeof(integer64));
+      p64++;                      // move 8 bits down the array
+    }
+    bytestreamCount64 = (uint64_t) bytestreamCount;
+    memcpy(p64, &bytestreamCount64, sizeof(bytestreamCount));
+    p64++;
+    memcpy(p64, &start, sizeof(start));
+    break;
+}
+amdtpsSendData((uint8_t *)res_cmd, res_cmd->length);
+//Serial.printf("Finished sending bytestream after %u microseconds\n",micros()-start);
 ```
 
 Repurposed `bytestream_active` to tell the Artemis how large an integer to send; if `bytestream_active==4` then the Artemis sends back an array of 32-bit (4-byte) integers, and if `bytestream_active==8` then the Artemis sends back 64-bit integers. These maximum values were confirmed by setting `integer32=0xffffffff` and `integer64=0xffffffffffffffff` as the maximum values that can be sent. Because of this usage, changed `await theRobot.testByteStream(25)` to `await theRobot.testByteStream(4)` in the 32-bit case or `await theRobot.testByteStream(8)` for the 64-bit case.
 
-Ran `main.py` again and received only the first element of the array, regardless of the array's length. The numbers were correct, however.
+Added the following code to `main.py` within `if code==Commands.BYTESTREAM_TX.value:`
+
+```python
+# dataUP = unpack("<III",data) # for 3 32-bit numbers 
+dataUP = unpack("<QQQ", data) # for 3 64-bit numbers
+# print(f"Received {length} bytes of data")
+print(dataUP)
+```
 
 ## Results and Lessons Learned
 
@@ -185,3 +199,6 @@ At first, VirtualBox saw neither the Bluetooth module in my laptop nor the USB d
 
 Another surprise I shouldn't have experienced was that the code didn't run when I executed `python main.py`. However, opening the file and noticing that it started with `#!/usr/bin/env python3` I realized it would run as a script, and it worked. This pointed out to me that `python` was mapped to `python2.7` and not `python3`. Always check versions.
 
+Lastly, I found that the code running on the Artemis does not "care" what length is sent with the message, but the Python code does. If I specified a length longer or shorter than the format string, I got an error, and if the format string and the length matched but the Artemis sent more data, then it was cut off after `length` bytes.
+
+<h1 id="L3"> Lab 3</h1>
