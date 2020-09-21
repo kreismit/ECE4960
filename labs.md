@@ -182,10 +182,28 @@ dataUP = unpack("<QQQ", data) # for 3 64-bit numbers
 print(dataUP)
 ```
 
-## Results and Lessons Learned
+## Results
 
-<image src="Lab2/bluetooth_discovery.png">
+### Ping
 
+<video width="600" controls><source src="Lab2/Videos/Ping.mp4" type="video/mp4"></video>
+
+Note that the Bluetooth icon in the statusbar does not appear (i.e. the connection is not made) until `main.py` is run. This indicates that the Python script, rather than the Ubuntu Bluetooth wizard, is establishing the connection.
+
+### Request Float
+
+<image width="600" src="Lab2/Float.png"></image>
+
+The traceback at the bottom occurred because I stopped the program with Ctrl+C after it succeeded.
+Note that although the floating-point value was `2.71828`, there were additional random digits after the 8.
+
+### Bytestream Test
+
+<image width="600" src="Lab2/32-bit.png"></image>
+
+<image width="600" src="Lab2/64-bit.png"></image>
+
+## Lessons Learned
 
 At first, VirtualBox saw neither the Bluetooth module in my laptop nor the USB dongle in the lab kit. However, my laptop's host OS saw both. After a quick web search, I found [this useful SuperUser post](https://superuser.com/questions/956622/no-usb-devices-available-in-virtualbox) which points out that users must be part of the `vboxusers` group on the host machine, or else no USB devices are accessible from VirtualBox. Adding my user to the group made the VM see both my laptop's Bluetooth radio and the USB dongle. This was not without its problems either, since I had to ensure that the Ubuntu OS was *not* connected to (or trying to connect to) anything while the code was running; otherwise I got errors such as `Software caused connection abort`. The working method was simple:
 
