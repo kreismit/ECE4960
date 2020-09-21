@@ -172,13 +172,16 @@ Ran `main.py` again and received only the first element of the array, regardless
 
 <image src="Lab2/bluetooth_discovery.png">
 
+
 At first, VirtualBox saw neither the Bluetooth module in my laptop nor the USB dongle in the lab kit. However, my laptop's host OS saw both. After a quick web search, I found [this useful SuperUser post](https://superuser.com/questions/956622/no-usb-devices-available-in-virtualbox) which points out that users must be part of the `vboxusers` group on the host machine, or else no USB devices are accessible from VirtualBox. Adding my user to the group made the VM see both my laptop's Bluetooth radio and the USB dongle. This was not without its problems either, since I had to ensure that the Ubuntu OS was *not* connected to (or trying to connect to) anything while the code was running; otherwise I got errors such as `Software caused connection abort`. The working method was simple:
+
 
 * Add my user to the host machine's `vboxusers` group.
 * Connect the Bluetooth USB dongle.
 * Start the VM.
-* In the VirtualBox menu bar, mouse to Devices>USB and check `Broadcom`.
+* In the VirtualBox menu bar, mouse to Devices>USB and check `Broadcom Corp 20702A0`.
 * Run `main.py` in the CLI.
+
 
 Another surprise I shouldn't have experienced was that the code didn't run when I executed `python main.py`. However, opening the file and noticing that it started with `#!/usr/bin/env python3` I realized it would run as a script, and it worked. This pointed out to me that `python` was mapped to `python2.7` and not `python3`. Always check versions.
 
