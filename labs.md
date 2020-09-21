@@ -93,21 +93,92 @@ I commented out all the serial lines of code so that the board would not attempt
 
 * 1 Artemis Nano
 * 1 USB dongle
+* 1 USB A-C cable
 * 1 computer running the Ubuntu 18 VM
 
 
 ## Procedure
 
+### Setup
+
 Downloaded the [distribution code](https://cei-lab.github.io/ECE4960/ece4960lab2dist.zip).
 (Re)installed `bleak` using `pip install bleak` at the command line.
 Downloaded the sketch `ECE_4960_robot` to the Artemis and opened the serial monitor at 115200 baud.
-In the `ece4960lab2dist` folder, ran `./main.py` twice while the Artemis Nano was powered on to discover the board.
+
+In the `ece4960lab2dist` folder, ran `./main.py` twice while the Artemis Nano was powered on to discover the board. Manually cached the Artemis' MAC address to `settings.py` to avoid occasional connection errors.
+
+### Ping Test
+
+Commented out `pass` and uncommented `# await theRobot.ping()` under `async def myRobot.Tasks()` in `main.py` so that the code pings the robot each time the loop code executes. Ran `./main.py` again while the Arduino serial monitor was still open to see ping statistics in the command line. Used the Ubuntu terminal copy/paste feature to extract the data; pasted into a Libreoffice Calc spreadsheet and set space as the delimiter, putting all the time values in one column. Made a histogram of that column and also calculated bits/second transfer rate based on the size of the ping message.
+
+### Request Float
+
+Learned C pointers and type casting. Modified `case REQ_FLOAT` in the Arduino sketch `ECE_4960_robot.ino` as follows:
+
+```c++
+	case REQ_FLOAT:
+		Serial.println("Going to send a float");
+        res_cmd->command_type = GIVE_FLOAT;
+        res_cmd->length = 6;
+        ((float *) res_cmd->data)[0] = (float) 2.71828; // send e
+        amdtpsSendData((uint8_t *)res_cmd, res_cmd->length);
+		break;
+```
+
+In `main.py`, commented `await theRobot.ping()` and uncommented `await theRobot.sendCommand(Commands.REQ_FLOAT)`. Reran `main.py` and received the floating-point value of *e*.
+
+### Bytestream Test
+
+In `main.py`, commented `await theRobot.sendCommand(Commands.REQ_FLOAT)` and uncommented `await theRobot.testByteStream(25)`. Added the following code to `ECE_4960_robot.ino` under `if (bytestream_active)`:
+
+```c++
+Serial.printf("Stream %d \n", bytestream_active);
+    res_cmd->command_type = BYTESTREAM_TX;
+    // Two bytes for command_type and for length; then
+    res_cmd->length = 6; // 4 bytes for the data
+    // "unpack requires a buffer of 4 bytes"
+    start=micros();
+    // Use the largest numbers available in these sizes so we know the sizes
+    uint32_t integer32 = 32;
+    uint64_t integer64 = 64;
+    uint32_t *p32;
+    uint64_t *p64;
+    switch(bytestream_active){
+      case 4: //asked for a 4-byte number!
+      p32=(uint32_t*) res_cmd->data;
+      for(int i=0; i<5; i++){
+          memcpy(p32, &integer32, sizeof(integer32));
+          p32++;
+        }
+        break;
+      case 8: //asked for an 8-byte number!
+      default: // the default is to send a 64-bit (8-byte) array
+        p64=(uint64_t*) res_cmd->data;
+        for(int i=0; i<5; i++){
+          memcpy(p64, &integer64, sizeof(integer64));
+          p64++;
+        }
+        break;
+    }
+    amdtpsSendData((uint8_t *)res_cmd, res_cmd->length);
+    Serial.printf("Finished sending bytestream after %u microseconds\n",micros()-start);
+```
+
+Repurposed `bytestream_active` to tell the Artemis how large an integer to send; if `bytestream_active==4` then the Artemis sends back an array of 32-bit (4-byte) integers, and if `bytestream_active==8` then the Artemis sends back 64-bit integers. These maximum values were confirmed by setting `integer32=0xffffffff` and `integer64=0xffffffffffffffff` as the maximum values that can be sent. Because of this usage, changed `await theRobot.testByteStream(25)` to `await theRobot.testByteStream(4)` in the 32-bit case or `await theRobot.testByteStream(8)` for the 64-bit case.
+
+Ran `main.py` again and received only the first element of the array, regardless of the array's length. The numbers were correct, however.
 
 ## Results and Lessons Learned
 
 <image src="Lab2/bluetooth_discovery.png">
 
-At first, VirtualBox saw neither the Bluetooth module in my laptop nor the USB dongle in the lab kit. However, my laptop's host OS saw both. After a quick web search, I found [this useful SuperUser post](https://superuser.com/questions/956622/no-usb-devices-available-in-virtualbox) which points out that users must be part of the `vboxusers` group or else no USB devices are accessible from VirtualBox. Adding my user to the group made the VM see both my laptop's Bluetooth radio and the USB dongle.
+At first, VirtualBox saw neither the Bluetooth module in my laptop nor the USB dongle in the lab kit. However, my laptop's host OS saw both. After a quick web search, I found [this useful SuperUser post](https://superuser.com/questions/956622/no-usb-devices-available-in-virtualbox) which points out that users must be part of the `vboxusers` group on the host machine, or else no USB devices are accessible from VirtualBox. Adding my user to the group made the VM see both my laptop's Bluetooth radio and the USB dongle. This was not without its problems either, since I had to ensure that the Ubuntu OS was *not* connected to (or trying to connect to) anything while the code was running; otherwise I got errors such as `Software caused connection abort`. The working method was simple:
+
+* Add my user to the host machine's `vboxusers` group.
+* Connect the Bluetooth USB dongle.
+* Start the VM.
+* In the VirtualBox menu bar, mouse to Devices>USB and check `Broadcom`.
+* Run `main.py` in the CLI.
 
 Another surprise I shouldn't have experienced was that the code didn't run when I executed `python main.py`. However, opening the file and noticing that it started with `#!/usr/bin/env python3` I realized it would run as a script, and it worked. This pointed out to me that `python` was mapped to `python2.7` and not `python3`. Always check versions.
 
