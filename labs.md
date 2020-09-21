@@ -199,9 +199,19 @@ Note that although the floating-point value was `2.71828`, there were additional
 
 ### Bytestream Test
 
+#### 32-bit Stream
+
+<image width="600" src="Lab2/Bytestream32.png"></image>
 <image width="600" src="Lab2/32-bit.png"></image>
 
+Histogram and statistics coming soon!
+
+#### 64-bit Stream
+
+<image width="600" src="Lab2/Bytestream64.png"></image>
 <image width="600" src="Lab2/64-bit.png"></image>
+
+Histogram and statistics coming soon!
 
 ## Lessons Learned
 
