@@ -276,6 +276,8 @@ Started `lab3-manager`, which was now aliased as shown here. Hit `a` to enter th
 
 Opened another terminal window and ran `robot-keyboard-teleop` to allow me to control the simulation.
 
+<image width="600" src="Lab3/Images/Teleop.png"></image>
+
 Played the game and made the measurements below.
 
 ## Results and Lessons Learned
