@@ -252,3 +252,35 @@ Lastly, the shorter the data packets were, the more likely they were to reach th
 [See my code and data for Lab 2 here.](https://github.com/kreismit/ECE4960/tree/master/Lab2)
 
 <h1 id="L3"> Lab 3</h1>
+
+## Materials
+
+* 1 Fancy RC Amphibious Stunt car with remote and batteries
+* 1 laptop running Ubuntu 18.04 VM with ROS Melodic Morenia
+
+
+## Procedure
+
+### Physical Robot
+
+### Simulation
+
+Installed `ros-melodic-rosmon`.
+Downloaded the [lab 3 base code](https://cornell.box.com/s/p4y4ovp6gu0alvqzog1hctzmcvby9eub) from Box into the folder shared between the host and the VM. Started the VM; extracted the archive; entered the folder extracted from the archive; and ran `./setup.sh`.
+
+<image width="600" src="Lab3/Images/Setup.png"></image>
+
+Closed and reopened the terminal emulator, per the instructions.
+
+Started `lab3-manager`, which was now aliased as shown here. Hit `a` to enter the `Node Actions` menu; then hit `s` to start a simulator.
+
+Opened another terminal window and ran `robot-keyboard-teleop` to allow me to control the simulation.
+
+Played the game and made the measurements below.
+
+## Results and Lessons Learned
+
+### Physical Robot
+
+### Simulation
+
