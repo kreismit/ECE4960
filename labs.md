@@ -226,7 +226,7 @@ The Python script indicates that it receives 14 bytes of data in each packet. Th
 <image width="600" src="Lab2/Images/Bytestream64.png"></image>
 <image width="600" src="Lab2/Images/64-bit.png"></image>
 
-The Python script indicates that it receives 14 bytes of data in each packet. The mean transfer rate is **1.46 KB/second**. Note this is the average over the packets which were received; only **22%** of the packets made it to the computer.
+The Python script indicates that it receives 26 bytes of data in each packet. The mean transfer rate is **1.46 KB/second**. Note this is the average over the packets which were received; only **22%** of the packets made it to the computer.
 
 <image width="600" src="Lab2/Images/64bitTransferHistogram.png"></image>
 
@@ -248,5 +248,7 @@ Another surprise I shouldn't have experienced was that the code didn't run when 
 I found that the Python code "cares" what length is sent with the message. The length must match the format string; and the code stops parsing data after `length` bytes.
 
 Lastly, the shorter the data packets were, the more likely they were to reach their destination.
+
+[See my code and data for Lab 2 here.](https://github.com/kreismit/ECE4960/tree/master/Lab2)
 
 <h1 id="L3"> Lab 3</h1>
