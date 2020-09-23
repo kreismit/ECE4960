@@ -284,5 +284,26 @@ Played the game and made the measurements below.
 
 ### Physical Robot
 
+Unless stated otherwise, the following tests were done on a flat surface.
+
+* The three speed settings had significantly different effects. It was virtually impossible to flip when traveling slow; but at max speed I could hardly start without flipping. The top speed and the default speed were nearly the same.
+* Acceleration : 6-8 feet to get to full speed. 6-8 feet to coast to a stop
+* Can stop quickly by reversing with slow button (2 feet)
+* The robot is quite stable - it has to tilt around 75° before it flips.
+* The robot is also somewhat topheavy - it flips if it accelerates or stops too suddenly.
+* On the first run, the battery lasted 35 min.
+* The range was quite good, at least 1000 feet line-of-sight.
+* The motors were not that strong - it was sometimes difficult to climb hills. It could climb a 45° slope with a good battery, but it slowed significantly. Rough terrain also slowed it down since it had to get over many little slopes.
+* The robot turned about its center predictably on a flat surface, but slopes made a big difference.
+* The robot's turn radius was predictable at a given battery level, speed, and type of terrain. Little rocks, initial speed, battery level, and slope all made a big difference.
+* The robot can turn in place quite predictably; however, it requires a lot of power to skid the wheels, and when the battery is low, it can no longer turn in place.
+
+Video(s) coming soon!
+
 ### Simulation
 
+* I could accelerate nearly instantly and reverse direction nearly instantly. The time from full speed forward to full speed reverse was xxx sec; the time from full speed reverse to full speed forward was also xxx sec.
+
+* When I hit the wall, the robot did not bounce, flip, etc; the simulation paused and showed a warning triangle sign in the place of the robot until I backed away from the wall.
+
+Video(s) coming soon!
