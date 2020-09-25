@@ -336,6 +336,8 @@ OK, so I know the robot's motors are strong enough to accelerate and decelerate 
 
 ### Simulation
 
-* I could accelerate nearly instantly and reverse direction nearly instantly. The time from full speed forward to full speed reverse was xxx sec; the time from full speed reverse to full speed forward was also xxx sec.
-
+* The robot doesn't seem to have a minimum speed. I can reduce the input speed to 0.01 and less and still it moves (albeit around 1 square per minute.) It seems to have no maximum speed either.
+* The same seems to be true for angular speed.
+* I could accelerate nearly instantly and reverse direction nearly instantly; the only limiting factor seems to be the frame rate. The time between 1x reverse and 1x forward is the same as between 3x reverse and 3x forward, or 3x forward and 3x reverse, etc.
 * When I hit the wall, the robot did not bounce, flip, etc; the simulation paused and showed a warning triangle sign in the place of the robot until I backed away from the wall.
+* I could grab and drag the robot using the mouse; as soon as I put the robot down, it resumed motion in the same direction as it was moving before. However, I couldn't both drag/pan and steer at once; the keyboard control only works when the terminal window running `robot-keyboard-teleop` has focus.
