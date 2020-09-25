@@ -255,22 +255,23 @@ Lastly, the shorter the data packets were, the more likely they were to reach th
 
 ## Materials Used
 
-* 1 Fancy RC Amphibious Stunt car with remote
+* Fancy RC Amphibious Stunt car with remote
 * 2 NiCd rechargeable batteries with USB charger
 * 2 AA batteries
+* Screwdriver
 * Ruler / measuring tape
 * Timer (app)
 * GPS (app)
-* 1 laptop running Ubuntu 18.04 VM with ROS Melodic Morenia
+* Laptop running Ubuntu 18.04 VM with ROS Melodic Morenia
 
 
 ## Procedure
 
 ### Physical Robot
 
-Charged each NiCd battery about 8-9 hours before use (or until the red light on the USB charger stopped flashing.) Inserted NiCd battery into robot and two rechargeable AA batteries into the remote.
+Charged each NiCd battery about 8-9 hours before first use (or until the red light on the USB charger stopped flashing.) Inserted NiCd battery into robot and two rechargeable AA batteries into the remote.
 
-Collected various measurements using the available environment, a ruler, and a timer. For longer measurements (like clocking speed) used a GPS app to get distance measurements.
+Collected various measurements using the available environment, a ruler, and a timer. For clocking speed, used a GPS app to get distance measurements.
 
 ### Simulation
 
@@ -293,6 +294,9 @@ Played the game and made the measurements below.
 
 ### Physical Robot
 
+The wheelbase is 4 in = 10.5 cm wide and 3.25 in = 8 cm long (measuring from the center of the wheels.) This measurement is useful to determine skid-steering quality.
+
+
 Unless stated otherwise, the following tests were done on a flat surface.
 
 #### Manual Control
@@ -301,7 +305,7 @@ How difficult it is to drive the robot manually helps me understand the difficul
 
 * The three speed settings had significantly different effects. It was virtually impossible to flip when traveling slow; but at max speed I could hardly start without flipping. The top speed and the default speed were nearly the same.
 * The robot can turn in place quite predictably; however, it requires a lot of power to skid the wheels, and when the battery is low, it can no longer turn in place.
-* Though turning in place has a substantial force threshold, long arc turns are difficult not to do. I could not drive straight without maxing out the joysticks. In code, driving straight will require a feedback loop.
+* Long arc turns are difficult not to do. I could hardly drive straight even if the joysticks were maxed out. In code, driving straight will require a feedback loop.
 
 #### Inertial Measurements
 
@@ -317,16 +321,16 @@ How quickly the robot accelerates and decelerates tells me a lot about the robot
 
 OK, so I know the robot's motors are strong enough to accelerate and decelerate it quickly. How strong is that? Where is the weight in the robot?
 
-* The robot is quite stable - it has to tilt around 75° before it flips.
+* The robot is quite stable – it has to tilt around 75° before it flips.
 * The robot is also somewhat topheavy - it flips if it accelerates or stops too suddenly.
-* The motors were not very strong - it was sometimes difficult to climb hills. It could climb a 45° slope with a good battery, but it slowed significantly. Rough terrain also slowed it down since it had to climb over many short slopes.
+* The motors were not very strong – it was sometimes difficult to climb hills. It could climb a 45° slope with a good battery, but it slowed significantly. Rough terrain also slowed it down since it had to climb over many short slopes.
 
 #### Frictional Measurements
 
 * The robot turned about its center predictably on a flat surface, but slopes made a big difference.
 * The robot's turn radius was predictable at a given battery level, speed, and type of terrain. Little rocks, initial speed, battery level, and slope all made a big difference.
 * Average maximum rotational speed when turning in place: 75 rpm = 7.9 rad/s
-* The robot seemed to drive about the same on flat (hard) carpet, concrete, and asphalt.
+* I noticed no differences between driving on flat (hard) carpet, concrete, and asphalt.
 
 #### Other Measurements
 
@@ -336,8 +340,10 @@ OK, so I know the robot's motors are strong enough to accelerate and decelerate 
 
 ### Simulation
 
+<video width="600" controls><source src="Lab3/Videos/RobotSim_Functions.mp4" type="video/mp4"></video>
+
 * The robot doesn't seem to have a minimum speed. I can reduce the input speed to 0.01 and less and still it moves (albeit around 1 square per minute.) It seems to have no maximum speed either.
-* The same seems to be true for angular speed.
+* The same is true for angular speed.
 * I could accelerate nearly instantly and reverse direction nearly instantly; the only limiting factor seems to be the frame rate. The time between 1x reverse and 1x forward is the same as between 3x reverse and 3x forward, or 3x forward and 3x reverse, etc.
 * When I hit the wall, the robot did not bounce, flip, etc; the simulation paused and showed a warning triangle sign in the place of the robot until I backed away from the wall.
 * I could grab and drag the robot using the mouse; as soon as I put the robot down, it resumed motion in the same direction as it was moving before. However, I couldn't both drag/pan and steer at once; the keyboard control only works when the terminal window running `robot-keyboard-teleop` has focus.
