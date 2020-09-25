@@ -253,15 +253,24 @@ Lastly, the shorter the data packets were, the more likely they were to reach th
 
 <h1 id="L3"> Lab 3</h1>
 
-## Materials
+## Materials Used
 
-* 1 Fancy RC Amphibious Stunt car with remote and batteries
+* 1 Fancy RC Amphibious Stunt car with remote
+* 2 NiCd rechargeable batteries with USB charger
+* 2 AA batteries
+* Ruler / measuring tape
+* Timer (app)
+* GPS (app)
 * 1 laptop running Ubuntu 18.04 VM with ROS Melodic Morenia
 
 
 ## Procedure
 
 ### Physical Robot
+
+Charged each NiCd battery about 8-9 hours before use (or until the red light on the USB charger stopped flashing.) Inserted NiCd battery into robot and two rechargeable AA batteries into the remote.
+
+Collected various measurements using the available environment, a ruler, and a timer. For longer measurements (like clocking speed) used a GPS app to get distance measurements.
 
 ### Simulation
 
@@ -286,24 +295,47 @@ Played the game and made the measurements below.
 
 Unless stated otherwise, the following tests were done on a flat surface.
 
+#### Manual Control
+
+How difficult it is to drive the robot manually helps me understand the difficulty of controlling it algorithmically.
+
 * The three speed settings had significantly different effects. It was virtually impossible to flip when traveling slow; but at max speed I could hardly start without flipping. The top speed and the default speed were nearly the same.
-* Acceleration : 6-8 feet to get to full speed. 6-8 feet to coast to a stop
+* The robot can turn in place quite predictably; however, it requires a lot of power to skid the wheels, and when the battery is low, it can no longer turn in place.
+* Though turning in place has a substantial force threshold, long arc turns are difficult not to do. I could not drive straight without maxing out the joysticks. In code, driving straight will require a feedback loop.
+
+#### Inertial Measurements
+
+How quickly the robot accelerates and decelerates tells me a lot about the robot's power-to-weight ratio. I don't have a scale, but I can calculate its mass (at least in terms of its motor torque.)
+
+* Acceleration: 6-8 feet to get to full speed. 6-8 feet to coast to a stop. 2-2.5 seconds to accelerate to full speed.
 * Can stop quickly by reversing with slow button (2 feet)
+* These numbers stayed relatively constant as the battery drained; but the maximum speed decreased.
+* Average max speed at full (ish) battery: 13 ft/s = 4 m/s = 9 mi/h
+* These measurements were the same whether the robot drove forward or backward.
+
+#### Gravitational Measurements
+
+OK, so I know the robot's motors are strong enough to accelerate and decelerate it quickly. How strong is that? Where is the weight in the robot?
+
 * The robot is quite stable - it has to tilt around 75° before it flips.
 * The robot is also somewhat topheavy - it flips if it accelerates or stops too suddenly.
-* On the first run, the battery lasted 35 min.
-* The range was quite good, at least 1000 feet line-of-sight.
-* The motors were not that strong - it was sometimes difficult to climb hills. It could climb a 45° slope with a good battery, but it slowed significantly. Rough terrain also slowed it down since it had to get over many little slopes.
+* The motors were not very strong - it was sometimes difficult to climb hills. It could climb a 45° slope with a good battery, but it slowed significantly. Rough terrain also slowed it down since it had to climb over many short slopes.
+
+#### Frictional Measurements
+
 * The robot turned about its center predictably on a flat surface, but slopes made a big difference.
 * The robot's turn radius was predictable at a given battery level, speed, and type of terrain. Little rocks, initial speed, battery level, and slope all made a big difference.
-* The robot can turn in place quite predictably; however, it requires a lot of power to skid the wheels, and when the battery is low, it can no longer turn in place.
+* Average maximum rotational speed when turning in place: 75 rpm = 7.9 rad/s
+* The robot seemed to drive about the same on flat (hard) carpet, concrete, and asphalt.
 
-Video(s) coming soon!
+#### Other Measurements
+
+* The range was quite good, 250+ feet line-of-sight.
+* I could drive the robot around and under cars. The signal can go around at least 10 cars in a parking lot.
+* On the first and second runs, the battery lasted 35 min (when the robot was moving about 1/2 the time.)
 
 ### Simulation
 
 * I could accelerate nearly instantly and reverse direction nearly instantly. The time from full speed forward to full speed reverse was xxx sec; the time from full speed reverse to full speed forward was also xxx sec.
 
 * When I hit the wall, the robot did not bounce, flip, etc; the simulation paused and showed a warning triangle sign in the place of the robot until I backed away from the wall.
-
-Video(s) coming soon!
