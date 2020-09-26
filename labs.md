@@ -294,6 +294,8 @@ Played the game and made the measurements below.
 
 ### Physical Robot
 
+<video width="600" controls><source src="Lab3/Videos/Stunts.mp4"></video>
+
 The wheelbase is 4 in = 10.5 cm wide and 3.25 in = 8 cm long (measuring from the center of the wheels.) This measurement is useful to determine skid-steering quality.
 
 
@@ -314,7 +316,7 @@ How quickly the robot accelerates and decelerates tells me a lot about the robot
 * Acceleration: 6-8 feet to get to full speed. 6-8 feet to coast to a stop. 2-2.5 seconds to accelerate to full speed.
 * Can stop quickly by reversing with slow button (2 feet)
 * These numbers stayed relatively constant as the battery drained; but the maximum speed decreased.
-* Average max speed at full (ish) battery: 13 ft/s = 4 m/s = 9 mi/h
+* Average max speed at full (ish) battery: 12 ft/s = 3.5 m/s = 8 mi/h
 * These measurements were the same whether the robot drove forward or backward.
 
 #### Gravitational Measurements
