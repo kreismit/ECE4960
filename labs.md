@@ -294,7 +294,8 @@ Played the game and made the measurements below.
 
 ### Physical Robot
 
-<video width="600" controls><source src="Lab3/Videos/Stunts.mp4"></video>
+<video width="600" controls><source src="Lab3/Videos/Stunts.mp4" type="video/mp4"></video>
+
 
 The wheelbase is 4 in = 10.5 cm wide and 3.25 in = 8 cm long (measuring from the center of the wheels.) This measurement is useful to determine skid-steering quality.
 
