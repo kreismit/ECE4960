@@ -350,3 +350,75 @@ OK, so I know the robot's motors are strong enough to accelerate and decelerate 
 * I could accelerate nearly instantly and reverse direction nearly instantly; the only limiting factor seems to be the frame rate. The time between 1x reverse and 1x forward is the same as between 3x reverse and 3x forward, or 3x forward and 3x reverse, etc.
 * When I hit the wall, the robot did not bounce, flip, etc; the simulation paused and showed a warning triangle sign in the place of the robot until I backed away from the wall.
 * I could grab and drag the robot using the mouse; as soon as I put the robot down, it resumed motion in the same direction as it was moving before. However, I couldn't both drag/pan and steer at once; the keyboard control only works when the terminal window running `robot-keyboard-teleop` has focus.
+
+[Click here to see my data for Lab 3.](https://github.com/kreismit/ECE4960/tree/master/Lab3/)
+
+<h1 id="L4">Lab 4</h1>
+
+## Materials Used
+
+## Procedure
+
+### Physical Robot
+
+### Simulation
+
+Downloaded the Lab 4 Base Code from Box into the folder shared between the host and the VM. In the VM, opened a terminal window; entered the shared folder; extracted the base code; and ran `setup.sh` in the appropriate folder.
+
+Closed and reopened terminal window. Ran `lab4-manager` and followed the instructions to open a simulator window.
+
+Opened another terminal window (`Ctrl+Alt+T`). Entered the directory `/home/artemis/catkin_ws/src/lab4/scripts` and ran `jupyter lab`.
+
+In the resulting Firefox window, opened the Jupyter notebook `lab4.ipynb`. Followed the instructions and saved the lab notebook.
+
+## Results and Lessons Learned
+
+### Physical Robot
+
+### Simulation
+
+```shell
+artemis@artemis-VirtualBox:~$ cd Shared
+artemis@artemis-VirtualBox:~/Shared$ ls
+ ...
+ lab4_base_code.zip
+...
+artemis@artemis-VirtualBox:~/Shared$ unzip lab4_base_code.zip
+Archive:  lab4_base_code.zip
+   creating: lab4_base_code/
+  inflating: lab4_base_code/bash_aliases  
+  inflating: lab4_base_code/setup.sh  
+  inflating: lab4_base_code/lab4.zip  
+artemis@artemis-VirtualBox:~/Shared$ ls
+...
+ lab4_base_code
+ lab4_base_code.zip
+...
+artemis@artemis-VirtualBox:~/Shared$ cd ./lab4_base_code/
+artemis@artemis-VirtualBox:~/Shared/lab4_base_code$ ls
+bash_aliases  lab4.zip  setup.sh
+artemis@artemis-VirtualBox:~/Shared/lab4_base_code$ ./setup.sh 
+ > Log output written to: /home/artemis/Shared/lab4_base_code/output_lab4.log 
+ > Lab Work Directory: /home/artemis/catkin_ws/src/lab4/scripts/ 
+Validating...
+Step 1/3: Extracting Files to: /home/artemis/catkin_ws/src/ 
+Step 2/3: Setting up commands
+Step 3/3: Compiling Project
+
+Successfully compiled lab.
+NOTE: Make sure you close all terminals after this message.
+artemis@artemis-VirtualBox:~/Shared/lab4_base_code$ exit
+```
+
+My working open-loop square was as follows:
+```python
+# Your code goes here
+for i in range(4):
+    robot.set_vel(1,0)
+    time.sleep(0.5)
+    robot.set_vel(0,1)
+    time.sleep(1.625)
+robot.set_vel(0,0)
+```
+
+See the rest of my code, and the Jupyter notebook, [here](https://github.com/kreismit/ECE4960/tree/master/Lab4).
