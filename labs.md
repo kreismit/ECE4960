@@ -410,7 +410,9 @@ When I assembled the robot, I found that the electrical tape wasn't sticky enoug
 
 Below is a video of a straight line (triggered by a whistle).
 
-Also, note that I could not set it to recognize whistles at a certain frequency, or else the robot would pick up the sound of its own motors and keep on driving. That seems to be the reason why it kept going for a bit longer here, too.
+<video width="600" controls><source src="Lab4/Videos/DriveStraightWhistle.mp4" type="video/mp4"></video>
+
+Also, note that I could not set to recognize higher-frequency whistles, or else the robot would pick up the sound of its own motors and keep on driving.
 
 ### Simulation
 
