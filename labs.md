@@ -373,11 +373,12 @@ OK, so I know the robot's motors are strong enough to accelerate and decelerate 
 
 Reviewed documentation. Removed the aesthetic cover and the motor cover; cut the wires to the motors right at the connectors; stripped about 3/8" of insulation; and connected them to the SCMD. Cut the battery wires close to the control board, stripped the ends, and connected them to the SCMD. 
 
-In Arduino IDE, installed the Serial Controlled Motor Driver library version 1.0.4 (Tools -> Manage Libraries -> search for "SCMD".) Loaded Example1_Wire (from the newly installed SCMD library); changed the I²C device address to `0x5D`; and ran it. It spun the two wheel motors. Used this line of code: `
-    Serial.printf("Address %d\n",i);` within the `for` loop to tell me what the motor addresses were. Wrote code to spin the motors and found the minimum speed that made the wheels turn.
+In Arduino IDE, installed the Serial Controlled Motor Driver library version 1.0.4 (Tools -> Manage Libraries -> search for "SCMD".) Loaded Example1_Wire (from the newly installed SCMD library); changed the I²C device address to `0x5D`; and ran it. It spun the two wheel motors. Used this command: `Serial.printf("Address %d\n",i);` within the `for` loop to tell me what the motor addresses were. Wrote code to spin the motors and found the minimum speed that made the wheels turn.
 
 Removed the RC control board from the robot; pushed the SCMD into its place; and reattached the 
-top cover. The Qwiic wire came out between the cover and the case.
+top cover. The Qwiic wire came out between the cover and the case, like this:
+
+![Picture of the Artemis Nano with wires protruding from the shell of the car.](Lab4/Images/FrontView.jpg)
 
 Wrote code to make the robot drive in a straight line (using a slight additive offset to one side) and took a video.
 
@@ -405,7 +406,9 @@ The minimum power at which I could make the wheels spin was not the same on eith
 
 Based on experience with other robots, I chose to use a constant additive offset rather than a factor to make the robot drive straight. My reasoning is that the friction in the wheels is a constant force, not a velocity-dependent one, so the frictional resistance should be a constant offset. This seemed to to work; at low power, I needed +4 power on the right side, and at higher power (80%) +4 made it drive quite straight.
 
-Below are videos of a straight line (triggered by a whistle) and a more complex maneuver:
+When I assembled the robot, I found that the electrical tape wasn't sticky enough to hold the Artemis Nano onto the robot case; and zip ties would prevent me from replacing the battery. So I used duct tape instead.
+
+Below are videos of a straight line (triggered by a whistle) and a U-turn:
 
 #### TODO
 
