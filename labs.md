@@ -380,7 +380,7 @@ top cover. The Qwiic wire came out between the cover and the case, like this:
 
 ![Picture of the Artemis Nano with wires protruding from the shell of the car.](Lab4/Images/FrontView.jpg)
 
-Wrote code to make the robot drive in a straight line (using a slight additive offset to one side) and took a video.
+Wrote code to make the robot drive in a straight line (using a linear scaling calibration) and took a video.
 
 ### Simulation
 
@@ -404,7 +404,7 @@ Not surprisingly, the addresses of the wheel motors were 0 and 1 (since the SCMD
 
 The minimum power at which I could make the wheels spin was not the same on either side. On the left (address 0) it was about 46; on the right (address 1) it was about 50. These numbers seem to change as the battery level changes.
 
-Based on experience with other robots, I chose to use a constant additive offset rather than a factor to make the robot drive straight. My reasoning is that the friction in the wheels is a constant force, not a velocity-dependent one, so the frictional resistance should be a constant offset. This seemed to to work; at low power, I needed +4 power on the right side, and at higher power (80%) +4 made it drive quite straight.
+I reasoned that the friction in the wheels is a constant force, not a velocity-dependent one, so the frictional resistance should be a constant offset. This seemed to to work; at low power, I needed +4 power on the right side, and the same should be true at higher power levels. However, the wheels were not exactly the same size, as evidenced by the fact that the robot drove in a curve. By trial and error, I scaled the left side up by 8% to compensate for this, and then the robot drove straighter.
 
 When I assembled the robot, I found that the electrical tape wasn't sticky enough to hold the Artemis Nano onto the robot case; and zip ties would prevent me from replacing the battery. So I used duct tape instead.
 
