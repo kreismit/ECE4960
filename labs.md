@@ -408,17 +408,9 @@ Based on experience with other robots, I chose to use a constant additive offset
 
 When I assembled the robot, I found that the electrical tape wasn't sticky enough to hold the Artemis Nano onto the robot case; and zip ties would prevent me from replacing the battery. So I used duct tape instead.
 
-Below are videos of a straight line (triggered by a whistle) and a U-turn:
+Below is a video of a straight line (triggered by a whistle).
 
-#### TODO
-
-* Vacuum floor
-* Set up straight tape line
-* Run robot
-* Program it to make U-turns
-* Re-solder yellow battery wires
-
-Also, note that my second battery (the yellow one) never charged properly. Using a voltmeter, I determined that the voltage actually decreased when I charged it more. The wires (which were spliced) were backwards compared to the green battery which worked. 
+Also, note that I could not set it to recognize whistles at a certain frequency, or else the robot would pick up the sound of its own motors and keep on driving. That seems to be the reason why it kept going for a bit longer here, too.
 
 ### Simulation
 
