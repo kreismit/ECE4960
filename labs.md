@@ -294,6 +294,8 @@ Played the game and made the measurements below.
 
 ### Physical Robot
 
+This video is courtesy of my apartment-mate Ben Hopkins.
+
 <video width="600" controls><source src="Lab3/Videos/Stunts.mp4" type="video/mp4"></video>
 
 
@@ -357,9 +359,27 @@ OK, so I know the robot's motors are strong enough to accelerate and decelerate 
 
 ## Materials Used
 
+* Sparkfun Artemis RedBoard Nano
+* USB A-C cable
+* SparkFun Serial Controlled Motor Driver (SCMD) module (with no jumpers soldered)
+* SparkFun Qwiic (I²C) connector cable
+* Fancy RC Amphibious Stunt Car
+* 4.8V NiCd rechargeable battery
+* Laptop with Ubuntu 18.04 VM and Arduino IDE
+
 ## Procedure
 
 ### Physical Robot
+
+Reviewed documentation. Removed the aesthetic cover and the motor cover; cut the wires to the motors right at the connectors; stripped about 3/8" of insulation; and connected them to the SCMD. Cut the battery wires close to the control board, stripped the ends, and connected them to the SCMD. 
+
+In Arduino IDE, installed the Serial Controlled Motor Driver library version 1.0.4 (Tools -> Manage Libraries -> search for "SCMD".) Loaded Example1_Wire (from the newly installed SCMD library); changed the I²C device address to `0x5D`; and ran it. It spun the two wheel motors. Used this line of code: `
+    Serial.printf("Address %d\n",i);` within the `for` loop to tell me what the motor addresses were. Wrote code to spin the motors and found the minimum speed that made the wheels turn.
+
+Removed the RC control board from the robot; pushed the SCMD into its place; and reattached the 
+top cover. The Qwiic wire came out between the cover and the case.
+
+Wrote code to make the robot drive in a straight line (using a slight additive offset to one side) and took a video.
 
 ### Simulation
 
@@ -371,9 +391,31 @@ Opened another terminal window (`Ctrl+Alt+T`). Entered the directory `/home/arte
 
 In the resulting Firefox window, opened the Jupyter notebook `lab4.ipynb`. Followed the instructions and saved the lab notebook.
 
-## Results and Lessons Learned
+## Results and Notes
 
 ### Physical Robot
+
+Running the example code, when the motor driver was plugged in, gave the result
+
+	I2C device found at address 0x5D  !
+
+Not surprisingly, the addresses of the wheel motors were 0 and 1 (since the SCMD drives up to two motors.)
+
+The minimum power at which I could make the wheels spin was not the same on either side. On the left (address 0) it was about 46; on the right (address 1) it was about 50. These numbers seem to change as the battery level changes.
+
+Based on experience with other robots, I chose to use a constant additive offset rather than a factor to make the robot drive straight. My reasoning is that the friction in the wheels is a constant force, not a velocity-dependent one, so the frictional resistance should be a constant offset. This seemed to to work; at low power, I needed +4 power on the right side, and at higher power (80%) +4 made it drive quite straight.
+
+Below are videos of a straight line (triggered by a whistle) and a more complex maneuver:
+
+#### TODO
+
+* Vacuum floor
+* Set up straight tape line
+* Run robot
+* Program it to make U-turns
+* Re-solder yellow battery wires
+
+Also, note that my second battery (the yellow one) never charged properly. Using a voltmeter, I determined that the voltage actually decreased when I charged it more. The wires (which were spliced) were backwards compared to the green battery which worked. 
 
 ### Simulation
 
@@ -411,6 +453,7 @@ artemis@artemis-VirtualBox:~/Shared/lab4_base_code$ exit
 ```
 
 My working open-loop square was as follows:
+
 ```python
 # Your code goes here
 for i in range(4):
