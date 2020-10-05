@@ -402,6 +402,8 @@ Running the example code, when the motor driver was plugged in, gave the result
 
 Not surprisingly, the addresses of the wheel motors were 0 and 1 (since the SCMD drives up to two motors.)
 
+I could not fit the Qwiic connector through the start button hole.
+
 The minimum power at which I could make the wheels spin was not the same on either side. On the left (address 0) it was about 46; on the right (address 1) it was about 50. These numbers seem to change as the battery level changes.
 
 I reasoned that the friction in the wheels is a constant force, not a velocity-dependent one, so the frictional resistance should be a constant offset. This seemed to to work; at low power, I needed +4 power on the right side, and the same should be true at higher power levels. However, the wheels were not exactly the same size, as evidenced by the fact that the robot drove in a curve. By trial and error, I scaled the left side up by 8% to compensate for this, and then the robot drove straighter.
@@ -413,6 +415,48 @@ Below is a video of a straight line (triggered by a whistle).
 <video width="600" controls><source src="Lab4/Videos/DriveStraightWhistle.mp4" type="video/mp4"></video>
 
 Also, note that I could not set to recognize higher-frequency whistles, or else the robot would pick up the sound of its own motors and keep on driving.
+
+The next two videos show two of my attempts to make it drive in a triangle, using the following code (with different wait times):
+
+	for(int i=0; i<3; i++){
+		  myMotorDriver.setDrive( right, 1, power);             // 1 for forward
+		  myMotorDriver.setDrive( left, 0, calib*power+offset); // left side is reversed
+		  int t = millis();
+		  while (millis()-t < 350){ // Wait for a specified time, but keep updating the PDM data
+		    myPDM.getData(pdmDataBuffer, pdmDataBufferSize);
+		  }
+		  // Coast to a stop
+		  myMotorDriver.setDrive( left, 1, 0);                  // Set both sides to zero
+		  myMotorDriver.setDrive( right, 1, 0);
+		  t = millis();
+		  while (millis()-t < 500){ // Wait for a specified time, but keep updating the PDM data
+		    myPDM.getData(pdmDataBuffer, pdmDataBufferSize);
+		  }
+		  // Spin in place
+		  myMotorDriver.setDrive( right, 1, power);             // 1 for forward
+		  myMotorDriver.setDrive( left, 1, calib*power+offset); // left side is NOT reversed since we're spinning!
+		  t = millis();
+		  while (millis()-t < 290){ // Wait for a specified time, but keep updating the PDM data
+		    myPDM.getData(pdmDataBuffer, pdmDataBufferSize);
+		  }
+		  // Coast to a stop
+		  myMotorDriver.setDrive( left, 1, 0);                  // Set both sides to zero
+		  myMotorDriver.setDrive( right, 1, 0);
+		  t = millis();
+		  while (millis()-t < 500){ // Wait for a specified time, but keep updating the PDM data
+		    myPDM.getData(pdmDataBuffer, pdmDataBufferSize);
+		  }
+		}
+
+The open-loop control is very sensitive to
+
+* Timing (the difference between the first and the second videos is 20 ms)
+* Surfaces (hardly turns on carpet; spins easily on tile)
+* Battery level (in less than a minute, the robot would no longer turn enough)
+
+<video width="600" controls><source src="Lab4/Videos/BadTriangle.mp4" type="video/mp4"></video>
+
+<video width="600" controls><source src="Lab4/Videos/BetterTriangle.mp4" type="video/mp4"></video>
 
 ### Simulation
 
