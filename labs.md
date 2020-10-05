@@ -505,4 +505,8 @@ for i in range(4):
 robot.set_vel(0,0)
 ```
 
+It was easy to tune the timing so that the robot predictably drove in a perfect square, like this:
+
+<video width="600" controls><source src="Lab4/Videos/SimRectangle.mp4" type="video/mp4"></video>
+
 See the rest of my code, and the Jupyter notebook, [here](https://github.com/kreismit/ECE4960/tree/master/Lab4).
