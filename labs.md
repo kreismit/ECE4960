@@ -1,4 +1,14 @@
-<h4 style="background-color:LightGray" id="navbar"><a href="#L1">&emsp;Lab 1&emsp;</a><a href="#L2">&emsp;Lab 2&emsp;</a><a href="#L3">&emsp;Lab 3&emsp;</a><a href="#L4">&emsp;Lab 4&emsp;</a><a href="#L5">&emsp;Lab 5&emsp;</a><a href="#L6">&emsp;Lab 6&emsp;</a></h4>
+<h4 style="background-color:LightGray" id="navbar">
+<a href="#L1">&emsp;Lab 1&emsp;</a>
+<a href="#L2">&emsp;Lab 2&emsp;</a>
+<a href="#L3">&emsp;Lab 3&emsp;</a>
+<a href="#L4">&emsp;Lab 4&emsp;</a>
+<a href="#L5">&emsp;Lab 5&emsp;</a>
+<a href="#L6">&emsp;Lab 6&emsp;</a>
+<a href="#L7">&emsp;Lab 7&emsp;</a>
+<a href="#L8">&emsp;Lab 8&emsp;</a>
+<a href="#L9">&emsp;Lab 9&emsp;</a>
+<a href="#L10">&emsp;Lab 10&emsp;</a></h4>
 
 <h1 id="L1"> Lab 1</h1>
 
@@ -365,7 +375,17 @@ OK, so I know the robot's motors are strong enough to accelerate and decelerate 
 * SparkFun Qwiic (I²C) connector cable
 * Fancy RC Amphibious Stunt Car
 * 4.8V NiCd rechargeable battery
+* 3.7V Li-ion rechargeable battery
+
+### Tools and Software
+
 * Laptop with Ubuntu 18.04 VM and Arduino IDE
+* Wire cutters (wire stripper would be ideal; scissors also work)
+* Small Phillips-head screwdriver (optional)
+* Small flat-head screwdriver (required for clamping wires in SCMD)
+* Electrical tape
+* Duct tape (optional)
+
 
 ## Procedure
 
@@ -510,3 +530,191 @@ It was easy to tune the timing so that the robot predictably drove in a perfect 
 <video width="600" controls><source src="Lab4/Videos/SimRectangle.mp4" type="video/mp4"></video>
 
 See the rest of my code, and the Jupyter notebook, [here](https://github.com/kreismit/ECE4960/tree/master/Lab4).
+
+
+<h1 id="L5">Lab 5</h1>
+
+## Background
+
+## Materials
+
+### Components
+
+* SparkFun Artemis RedBoard Nano
+* USB A-C cable
+* SparkFun 4m time-of-flight sensor (VL53L1X)
+* SparkFun 20cm proximity sensor (VCNL4040)
+* SparkFun Serial Controlled Motor Driver (SCMD) module (with no jumpers soldered)
+* SparkFun Qwiic (I²C) connector cable
+* Fancy RC Amphibious Stunt Car
+* 4.8V NiCd rechargeable battery
+* 3.7V Li-ion rechargeable battery
+* Boxes and targets of various sizes
+
+### Tools and Software
+
+* Laptop with Ubuntu 18.04 VM and Arduino IDE
+* Wire cutters (scissors also work)
+* Small Phillips-head screwdriver (may substitute flathead)
+* Ruler (or printed graph paper)
+* Gray target (printed; 17% dark)
+* Electrical tape
+* Double-sided tape or sticky pad
+
+## Prelab
+
+The two sensors are quite different. The long-range ToF sensor (VL53L1X) has a field of view of about 15 degrees, and it has a much longer range. It can safely be put near the ground without seeing the ground; it could miss obstacles right in front of the wheels since the detection cone is very narrow near the robot. Outside of its detection cone, the prox sensor (VCNL4040) has a wider field of view (&pm;20&deg; = 40&deg;) so it may be placed right at the center of the robot and hopefully it will pick up the obstacles close and to the side, which would be missed by the VL53L1X. Also note that the VCNL4040 maxes out within the range of the VL53L1X, so there is some overlap where the two sensors' readings may be compared.
+
+These two distance sensors exemplify the main types of infrared ranging sensors.
+
+* Infrared intensity measurement: This uses the inverse-square law to determine the distance to an object. However, the coefficient of the inverse-square law varies widely with color, and this intensity is also extremely sensitive to ambient light. The VCNL4040 uses intensity measurement.
+* Infrared time-of-flight (ToF): This works like RADAR, by measuring the elapsed time for the optical signal to bounce back. It is more immune to noise than intensity measurement, but it is still vulnerable to interference from ambient light.
+* Infrared angle measurement: This uses the angle (sometimes in conjunction with ToF) of the returned light to triangulate the distance. It eliminates some more of the problems of ToF, but is again sensitive to ambient light and refraction / angle of the reflector. The VL53L1X uses both angle and ToF measurement.
+
+Other available ranging sensors include SONAR (used in submarines and bats ☺) and RADAR (used in aircraft.) Since the width of a diffracted beam decreases with increasing wavelength, both of these require some sort of beam-steering to get a sufficiently narrow beam to see only what's in front of the robot. IR ranging is thus simpler and usually cheaper to use.
+
+## Procedure
+
+### Physical Robot
+
+Skimmed the documentation for the [VCNL4040](https://www.vishay.com/docs/84274/vcnl4040.pdf) and the SparkFun [repo](https://github.com/sparkfun/SparkFun_VCNL4040_Arduino_Library) and [hookup guide](https://learn.sparkfun.com/tutorials/qwiic-proximity-sensor-vcnl4040-hookup-guide). Noted that the default I²C address of the sensor is `0x60`.
+In the Arduino IDE, installed the [SparkFun VCNL4040 Arduino Library](https://github.com/sparkfun/SparkFun_VCNL4040_Arduino_Library) using Tools > Manage Libraries.
+
+Reviewed the [datasheet](https://cdn.sparkfun.com/assets/8/9/9/a/6/VL53L0X_DS.pdf) and the [manual](https://cdn.sparkfun.com/assets/e/1/8/4/e/VL53L1X_API.pdf) for the VL53L1X.
+
+Ran `Example1_Wire` (File > Examples > Wire) to find all I²C addresses. Ran `Example4_AllReadings` (File > Examples > SparkFun VCNL4040 Proximity Sensor Library) to measure data. Tested on ~~four~~ five different targets under various conditions. Recorded data once the reading stabilized (after about 5s.) When the data fluctuated wildly (e.g. at very close ranges) took the median and rounded.
+
+In the Arduino IDE, installed the [SparkFun VL53L1X Arduino Library](https://github.com/sparkfun/SparkFun_VL53L1X_Arduino_Library) using Tools > Manage Libraries. Ran `Example1_Wire` again to find the I²C address of the time-of-flight sensor. Tested ranging once and saw that it needed calibration. Calibrated using `Example7_Calibration` (File > Examples > SparkFun VL53L1X Distance Sensor). Adjusted offset accordingly in `Example1_ReadDistance` and tested ranging on several targets with the lights on and with the lights off.
+
+Wrote and tested an obstacle-avoidance program...
+
+### Simulation
+
+Downloaded and extracted the [lab 5 base code](https://cornell.box.com/s/a7t117nifn7q9esjshoj5qx0jmmjm26y). Entered the directory and ran `setup.sh`. Closed the terminal window.
+
+Entered the directory `~/catkin_ws/src/lab5/scripts/`. Ran `jupyter lab`; opened `lab5.ipynb'; followed the instructions in the Jupyter Notebook.
+
+## Results and Notes
+
+### Physical Robot
+
+```
+Unknown error at address 0x5D
+Unknown error at address 0x5E
+Unknown error at address 0x5F
+I2C device found at address 0x60  !
+Unknown error at address 0x61
+Unknown error at address 0x62
+Unknown error at address 0x63```
+
+The VCNL4040 indeed had the default I²C address of `0x60`.
+
+When testing the ranging for both sensors, I found it useful to tape the sensor to a fixed object, as suggested in the instructions. For me, it was a screwdriver case.
+
+![Picture of ranging test](Lab5/Images/IMG_20201010_105539.jpg)
+
+When running `Example4_AllReadings`, I noticed that the sensor readings took 3-5 seconds to stabilize. It seems like there is a rolling-average filter or an integrator in the sensor. I was also a bit surprised since the "prox reading" wasn't a range estimate (like it is on ultrasonic rangefinders), but an intensity which scales with the inverse-square law. After gathering data from several surfaces, I found that my data looked much like the screenshot shown in the lab instructions.
+
+I was pleasantly surprised that the VCNL4040 proximity ranges were about the same whether I had the lights on or off, and even if I shone a flashlight on the sensor. Both the shadow of the target and the red LED on the board significantly affected brightness readings as the sensor approached the target, so I recorded brightness at 20cm away where these had less effect.
+
+![Picture of desk-leg measurement](Lab5/Images/IMG_20201010_115842.jpg)
+
+With the desk leg, I noticed that the readings were much worse than they were for other objects. At first I assumed it was the reflectivity of the surface, but I noted three other things:
+
+* The graph paper was rumpled. Was the sensor seeing the paper instead? Turning the sensor sideways (so it completely missed the leg) gave approximately the same readings. Maybe it was seeing the paper.
+* The reading varied significantly when the sensor moved side to side. Was it the width?
+* The desk leg wasn't parallel to the sensor, and I noticed that angles mattered in the case of the plywood too. But, holding the sensor off the ground and pointing it directly at the angled leg didn't make much difference.
+
+I repeated a few measurements of the desk leg with a ruler instead of the graph paper, and achieved the same results.
+
+I also added an additional measurement of the box on its side, ruling out the possibility that it was the object's width and not its surface texture.
+
+![Scatterplot of VCNL Ranging Data](Lab5/Images/VCNL4040SmoothScatter.png]
+Figure 4. Prox data vs. real range.
+
+As the SparkFun hookup guide predicted, the I²C address of the ToF sensor was `0x29`.
+
+```
+Unknown error at address 0x26
+Unknown error at address 0x27
+Unknown error at address 0x28
+I2C device found at address 0x29  !
+Unknown error at address 0x2A
+Unknown error at address 0x2B
+Unknown error at address 0x2C
+```
+
+My first reading at 20cm distance showed 140cm instead, so I tried to run the `Example7_Calibration`. However, this code didn't work. I traced the problem to the line `while (!distanceSensor.checkForDataReady())`, as the loop kept running forever and the sensor was never ready. Comparing this example code to `Example1_ReadDistance` (which worked) I noticed that `distanceSensor.startRanging()` had never been called. Adding this line to the example gave me successful (and repeatable) calibration.
+
+```
+*****************************************************************************************************
+                                    Offset calibration
+Place a light grey (17 % gray) target at a distance of 140mm in front of the VL53L1X sensor.
+The calibration will start 5 seconds after a distance below 10 cm was detected for 1 second.
+Use the resulting offset distance as parameter for the setOffset() function called after begin().
+*****************************************************************************************************
+
+Sensor online!
+Distance below 10cm detected for more than a second, start offset calibration in 5 seconds
+Result of offset calibration. RealDistance - MeasuredDistance=37 mm```
+
+Then, I slightly modified the example distance-reading code as follows:
+
+In `void setup()`, added a line `distanceSensor.setOffset(37);`
+
+In `void loop()`, added code to time each range measurement and to print the time to the serial output.
+
+When I tried different timing budgets, I didn't see much improvement in precision when using timing budgets over 60 ms in short-range mode or over 180 ms in long-range mode. These maximum timing budgets seemed to be the best compromise between accuracy and speed; adding more doesn't gain much accuracy, and reducing more doesn't gain much speed.
+
+I noticed that, as the datasheet said, the ranging in ambient light was significantly more precise when I used short mode. The same seemed to be true in the dark, however. My data, plotted below, shows these trends. Note that some "waves" in the graphs are repeated for all surfaces.
+
+![Ranging with plywood](IMG_20201010_110911.jpg)
+Figure 3. Ranging setup with plywood.
+
+The ToF sensor was much less sensitive to the width of the object being detected; it made no difference what the orientation of the box was. It was somewhat sensitive to the angle of the plywood board, but only at short distances (where the VCNL4040 might be a better choice.)
+
+![Ranging with door](IMG_20201010_114018.jpg)
+Figure 4. Ranging setup with door (using graph paper for 20cm or less). Note: used measuring tape and taller box for long-range testing.
+
+![Scatterplot of VL53 Ranging Data](Lab5/Images/VL53L1X_SR_Scatter.png]
+Figure 5. Measured range (short range mode) vs. real range.
+
+In the long-range case, my (mini) tape measure was only 1 m long, so I added an 18" ruler at the end of the tape measure to reach 1.4 m. The ToF sensor was surprisingly immune to small changes in angle (probably because the beam spans about 15°); but, when mounted low, it kept picking up the rough carpet, leading to noisy and very inaccurate measurements. To mount the sensor higher, I taped it to the box of the RC car. That is why there is a series which dips back down, and another series labeled "raised".
+
+![Scatterplot of VL53 Ranging Data](Lab5/Images/VL53L1X_LR_Scatter.png]
+Figure 6. Measured range (long range mode) vs. real range.
+
+See all my range measurements and code [here on GitHub](https://github.com/kreismit/ECE4960/tree/master/Lab5).
+
+### Simulation
+
+This was a simple exercise after previous labs. I found that it was much easier to dodge walls when the robot traveled in arcs, so I set it to always drive in long arcs since it's impossible to be perfectly parallel to a wall.
+
+```python
+def perform_obstacle_avoidance(robot):
+    while True:
+        # Obstacle avoidance code goes here
+        if robot.get_laser_data()<0.5:
+            robot.set_vel(0.0,0.5)  # turn
+            initialAngle = robot.get_pose()[2]
+            angleTurned = 0
+            while angleTurned < 0.5: # turn about 30 degrees, then read again
+                angleTurned = robot.get_pose()[2]-initialAngle
+            robot.set_vel(0,0)
+        else:
+            robot.set_vel(0.5,0.05)  # drive in a slight curve since we will
+                                    # never be exactly parallel to a wall
+        time.sleep(0.1)
+           
+perform_obstacle_avoidance(robot)
+```
+
+The turning function uses a while loop to ensure it turns (at least) 30 degrees. Since this simulated robot starts and stops basically instantly, it will turn exactly 30 degrees.
+
+<video width=600 controls><src="Lab5/Videos/ArcObstAvoidTest.mp4" type="video/mp4"></video>
+
+The reasoning for this is to allow the robot to "follow" walls to which it is neither perpendicular nor parallel. (Good practice for my room with lots of angles.) However, in this perfect simulated environment, all the surfaces are perpendicular to each other. A simplified version and its performance are shown below.
+
+<video width=600 controls><src="Lab5/Videos/SimObstAvoid.mp4" type="video/mp4"></video>
+
+See all my code [here on GitHub](https://github.com/kreismit/ECE4960/tree/master/Lab5).
