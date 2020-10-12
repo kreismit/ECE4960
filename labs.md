@@ -771,3 +771,56 @@ The reasoning for this is to allow the robot to "follow" walls to which it is ne
 <video width=600 controls><source src="Lab5/Videos/SimObstAvoid.mp4" type="video/mp4"></video>
 
 See all my code [here on GitHub](https://github.com/kreismit/ECE4960/tree/master/Lab5).
+
+<h1 id="L6">Lab 6</h1>
+
+## Materials Used
+
+* Robot from lab 5, containing
+    * Driving base of RC car
+    * 4.8V NiCd battery
+    * SparkFun Serially Controlled Motor Driver (SCMD)
+    * SparkFun VCNL4040 IR proximity sensor breakout board
+    * SparkFun VL53L1X IR rangefinder breakout board
+    * SparkFun ICM-20948 9 DoF IMU breakout board
+    * SparkFun RedBoard Artemis
+    * 3.7v LiPo battery
+    * 4 short SparkFun Qwiic (I²C) connector cables (or long cables and zip ties)
+    * Electrical tape, duct tape, and sticky pads (3M)
+* Computer with the following software:
+    * Course Ubuntu 18.04 VM (installed in Lab 1)
+    * Arduino IDE with Artemis RedBoard Nano board installed
+    * At least the following Arduino libraries:
+        * Core libraries (Arduino, etc.)
+        * Serial Controlled Motor Driver (Sparkfun)
+        * SparkFun 9DoF IMU Breakout - ICM 20948 - Arduino Library
+        * SparkFun VCNL4040 Proximity Sensor Library
+        * SparkFun VCNL53L1X 4m Laser Distance Sensor
+    * Optional: [SerialPlot](https://hackaday.io/project/5334-serialplot-realtime-plotting-software) - also on [sourcehut](https://hg.sr.ht/~hyozd/serialplot/)
+* USB A-C cable (for a computer with USB A ports)
+        
+## Procedure
+
+Reviewed the [Sparkfun product info and documentation](https://www.sparkfun.com/products/15335) for the [ICM-20948 IMU](https://cdn.sparkfun.com/assets/7/f/e/c/d/DS-000189-ICM-20948-v1.3.pdf). Noted (among other things) that the default I²C address is `0x69`.
+
+With the "SparkFun 9DoF IMU Breakout - ICM 20948 - Arduino Library" installed, and the IMU connected to the Artemis via a Qwiic cable, ran the `Example1_Wire` Arduino sketch (Arduino IDE: File > Examples > Wire (under "Examples for Artemis RedBoard Nano"). Confirmed the default I²C address.
+
+Ran the `Example1_Basics` Arduino sketch (accessed from the IDE by File > Examples > SparkFun 9DoF IMU Breakout - ICM 20948 - Arduino Library). Confirmed that the IMU read out sensible values on all nine axes. 
+
+
+
+## Results and Notes
+
+Yes, the Wire code found an I²C device at `0x69`. It also still recognized the other three I²C devices at the same default addresses. I won't bore you with the output.
+
+There was a magnet in my computer (to hold the lid shut.) The magnetometer readings near that magnet changed drastically as I moved the IMU from one side of the magnet to the other. All other readings were sensible (with constant offsets.) Below are demos of accelerometer and gyroscope readings.
+
+![Graph of three accelerometer axes](Lab6/Images/Screenshot_2020-10-12_14-12-03.png)
+Figure 1. Accelerometer data when the robot is tilted, then flipped upside-down. The data is in milli-*g*'s; *z* is facing down when the robot is level. The axis facing the ground reads 1 *g* when it's head-on; when it isn't, the gravitational acceleration is distributed among the axes. 
+
+![Graph of three accelerometer axes](Lab6/Images/Screenshot_2020-10-12_14-18-28.png)
+Figure 2. Accelerometer data when the robot is rotated about 90° about its three axes. The data is angular rate; it's the derivative of the robot's three orientation angles. Matching the product datasheet, rotating it CCW about Z, and then back, gave a positive spike and then a negative spike with equal area. Rotating it CW about Y, and then back, gave it a negative spike (CCW is positive) and then a positive spike with equal area. Rotating it CCW about X, and then back, gave it a positive spike, and then a negative spike with equal area.
+
+![Graph of three accelerometer axes](Lab6/Images/Screenshot_2020-10-12_14-24-10.png)
+Figure 3. Bonus: if I rotate slowly, the peaks are the same area, but flattened out! The bigger peaks are from when my hand slipped and I bumped the Qwiic cable (the gyro isn't mounted very securely now.) Also note the noise in the background when the robot is not moving!
+
