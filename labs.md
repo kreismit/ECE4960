@@ -668,12 +668,12 @@ When I tried different timing budgets, I didn't see much improvement in precisio
 
 I noticed that, as the datasheet said, the ranging in ambient light was significantly more precise when I used short mode. The same seemed to be true in the dark, however. My data, plotted below, shows these trends. Note that some "waves" in the graphs are repeated for all surfaces.
 
-![Ranging with plywood](IMG_20201010_110911.jpg)
+![Ranging with plywood](Lab5/Images/IMG_20201010_110911.jpg)
 Figure 3. Ranging setup with plywood.
 
 The ToF sensor was much less sensitive to the width of the object being detected; it made no difference what the orientation of the box was. It was somewhat sensitive to the angle of the plywood board, but only at short distances (where the VCNL4040 might be a better choice.)
 
-![Ranging with door](IMG_20201010_114018.jpg)
+![Ranging with door](Lab5/Images/IMG_20201010_114018.jpg)
 Figure 4. Ranging setup with door (using graph paper for 20cm or less). Note: used measuring tape and taller box for long-range testing.
 
 ![Scatterplot of VL53 Ranging Data](Lab5/Images/VL53L1X_SR_Scatter.png]
@@ -683,6 +683,23 @@ In the long-range case, my (mini) tape measure was only 1 m long, so I added an 
 
 ![Scatterplot of VL53 Ranging Data](Lab5/Images/VL53L1X_LR_Scatter.png]
 Figure 6. Measured range (long range mode) vs. real range.
+
+Unfortunately, the SparkFun library doesn't have a function to output the signal or the sigma values. It can only set the thresholds. By default, these are
+
+	Signal intensity threshold: 0.0 
+	Standard deviation threshold: 0.0
+
+This seems to mean that there is no threshold. (I tried showing more decimal places and they were also zeros.)
+
+I also didn't notice much change in accuracy when I increased or decreased the time between measurements (at least not during manual testing.) By default, it is
+
+	100 ms between measurements.
+
+When I moved the ToF sensor back and forth suddenly, it still gave consistent readings as fast as I could move it. Without knowing what typical standard deviations and signal intensities were, I didn't have data to improve the values. So, I left these values at their defaults.
+
+#### Obstacle Avoidance
+
+
 
 See all my range measurements and code [here on GitHub](https://github.com/kreismit/ECE4960/tree/master/Lab5).
 
