@@ -731,11 +731,11 @@ I was able to drive faster and still be able to stop when I set the robot to con
 
 Backing up while turning gave even better results. Note the deceleration as it approaches an obstacle.
 
-<video width="600" controls><source src="Lab5/Videos/secondsuccess.mp4" type="video/mp4">
+<video width="600" controls><source src="Lab5/Videos/secondsuccess.mp4" type="video/mp4"></video>
 
 Coming soon: the robot can drive pretty fast without hitting the wall. Below is a video of it driving down a 0.4m tape strip. Note the deceleration.
 
-<video width="600" controls><source src="Lab5/Videos/quickstopturn.mp4" type="video/mp4">
+<video width="600" controls><source src="Lab5/Videos/quickstopturn.mp4" type="video/mp4"></video>
 
 See all my range measurements, pictures, videos, and code [here on GitHub](https://github.com/kreismit/ECE4960/tree/master/Lab5).
 
