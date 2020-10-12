@@ -586,7 +586,7 @@ Ran `Example1_Wire` (File > Examples > Wire) to find all I²C addresses. Ran `Ex
 
 In the Arduino IDE, installed the [SparkFun VL53L1X Arduino Library](https://github.com/sparkfun/SparkFun_VL53L1X_Arduino_Library) using Tools > Manage Libraries. Ran `Example1_Wire` again to find the I²C address of the time-of-flight sensor. Tested ranging once and saw that it needed calibration. Calibrated using `Example7_Calibration` (File > Examples > SparkFun VL53L1X Distance Sensor). Adjusted offset accordingly in `Example1_ReadDistance` and tested ranging on several targets with the lights on and with the lights off.
 
-Wrote and tested an obstacle-avoidance program...
+Wrote and tested an obstacle-avoidance program.
 
 ### Simulation
 
@@ -605,19 +605,22 @@ Unknown error at address 0x5F
 I2C device found at address 0x60  !
 Unknown error at address 0x61
 Unknown error at address 0x62
-Unknown error at address 0x63```
+Unknown error at address 0x63
+```
 
 The VCNL4040 indeed had the default I²C address of `0x60`.
 
 When testing the ranging for both sensors, I found it useful to tape the sensor to a fixed object, as suggested in the instructions. For me, it was a screwdriver case.
 
 ![Picture of ranging test](Lab5/Images/IMG_20201010_105539.jpg)
+Figure 1. Ranging test with VCNL4040.
 
 When running `Example4_AllReadings`, I noticed that the sensor readings took 3-5 seconds to stabilize. It seems like there is a rolling-average filter or an integrator in the sensor. I was also a bit surprised since the "prox reading" wasn't a range estimate (like it is on ultrasonic rangefinders), but an intensity which scales with the inverse-square law. After gathering data from several surfaces, I found that my data looked much like the screenshot shown in the lab instructions.
 
 I was pleasantly surprised that the VCNL4040 proximity ranges were about the same whether I had the lights on or off, and even if I shone a flashlight on the sensor. Both the shadow of the target and the red LED on the board significantly affected brightness readings as the sensor approached the target, so I recorded brightness at 20cm away where these had less effect.
 
 ![Picture of desk-leg measurement](Lab5/Images/IMG_20201010_115842.jpg)
+Figure 2. Ranging test with desk leg and VCNL4040.
 
 With the desk leg, I noticed that the readings were much worse than they were for other objects. At first I assumed it was the reflectivity of the surface, but I noted three other things:
 
@@ -630,7 +633,7 @@ I repeated a few measurements of the desk leg with a ruler instead of the graph 
 I also added an additional measurement of the box on its side, ruling out the possibility that it was the object's width and not its surface texture.
 
 ![Scatterplot of VCNL Ranging Data](Lab5/Images/VCNL4040SmoothScatter.png]
-Figure 4. Prox data vs. real range.
+Figure 3. Prox data vs. real range.
 
 As the SparkFun hookup guide predicted, the I²C address of the ToF sensor was `0x29`.
 
@@ -656,7 +659,8 @@ Use the resulting offset distance as parameter for the setOffset() function call
 
 Sensor online!
 Distance below 10cm detected for more than a second, start offset calibration in 5 seconds
-Result of offset calibration. RealDistance - MeasuredDistance=37 mm```
+Result of offset calibration. RealDistance - MeasuredDistance=37 mm
+```
 
 Then, I slightly modified the example distance-reading code as follows:
 
@@ -681,6 +685,8 @@ Figure 5. Measured range (short range mode) vs. real range.
 
 In the long-range case, my (mini) tape measure was only 1 m long, so I added an 18" ruler at the end of the tape measure to reach 1.4 m. The ToF sensor was surprisingly immune to small changes in angle (probably because the beam spans about 15°); but, when mounted low, it kept picking up the rough carpet, leading to noisy and very inaccurate measurements. To mount the sensor higher, I taped it to the box of the RC car. That is why there is a series which dips back down, and another series labeled "raised".
 
+The VL53L1X ToF sensor didn't seem to see the metal desk leg at all. Hence, I did not gather range data for that. This will obviously cause bloopers when the robot cannot see shiny metal objects. 
+
 ![Scatterplot of VL53 Ranging Data](Lab5/Images/VL53L1X_LR_Scatter.png]
 Figure 6. Measured range (long range mode) vs. real range.
 
@@ -697,6 +703,22 @@ I also didn't notice much change in accuracy when I increased or decreased the t
 
 When I moved the ToF sensor back and forth suddenly, it still gave consistent readings as fast as I could move it. Without knowing what typical standard deviations and signal intensities were, I didn't have data to improve the values. So, I left these values at their defaults.
 
+#### Update on Robot Construction
+
+The wires now fit through the hole; I used the Qwiic-to-serial connectors and fed the pins through one at a time.
+
+Both sensors are taped securely on the front using the double-sided tape.
+
+The IMU and the Artemis board are also taped to the top. Unfortunately, the tape isn't that sticky and the top is slippery, so they keep coming off. I intend to use duct tape again after the next lab.
+
+The LiPo battery is taped to the bottom of the robot. This eliminates mess on the top and makes it easier to unplug or replace the battery without removing the Artemis. It also allows the Artemis USB-C port to face off the edge of the robot, so I can easily plug and unplug it to upload code.
+
+![Photo of the front of the robot](Lab5/Images/IMG_20201012_091741.jpg)
+Figure 7. Front of robot, showing rangefinders (front), IMU (top, front), and RedBoard Artemis (top, back).
+
+![Photo of the back of the robot](Lab5/Images/IMG_20201012_091750.jpg)
+Figure 8. Rear of robot, showing RedBoard Artemis (top, front), IMU (top, back), and LiPo battery (underneath, unplugged.)
+
 #### Obstacle Avoidance
 
 Unfortunately, I spent a long time taking data and didn't get obstacle avoidance working by 8 in the morning. But I did eventually get it. Below, I made the mistake of using a binary on-off speed control with too long of a minimum range. 
@@ -707,9 +729,13 @@ I was able to drive faster and still be able to stop when I set the robot to con
 
 <video width="600" controls><source src="Lab5/Videos/firstsuccess.mp4" type="video/mp4"></video>
 
+Backing up while turning gave even better results. Note the deceleration as it approaches an obstacle.
+
+<video width="600" controls><source src="Lab5/Videos/secondsuccess.mp4" type="video/mp4">
+
 Coming soon: the robot can drive pretty fast without hitting the wall. Below is a video of it driving down a 0.4m tape strip. Note the deceleration.
 
-
+<video width="600" controls><source src="Lab5/Videos/quickstopturn.mp4" type="video/mp4">
 
 See all my range measurements, pictures, videos, and code [here on GitHub](https://github.com/kreismit/ECE4960/tree/master/Lab5).
 
@@ -738,10 +764,10 @@ perform_obstacle_avoidance(robot)
 
 The turning function uses a while loop to ensure it turns (at least) 30 degrees. Since this simulated robot starts and stops basically instantly, it will turn exactly 30 degrees.
 
-<video width=600 controls><src="Lab5/Videos/ArcObstAvoidTest.mp4" type="video/mp4"></video>
+<video width=600 controls><source src="Lab5/Videos/ArcObstAvoidTest.mp4" type="video/mp4"></video>
 
 The reasoning for this is to allow the robot to "follow" walls to which it is neither perpendicular nor parallel. (Good practice for my room with lots of angles.) However, in this perfect simulated environment, all the surfaces are perpendicular to each other. A simplified version and its performance are shown below.
 
-<video width=600 controls><src="Lab5/Videos/SimObstAvoid.mp4" type="video/mp4"></video>
+<video width=600 controls><source src="Lab5/Videos/SimObstAvoid.mp4" type="video/mp4"></video>
 
 See all my code [here on GitHub](https://github.com/kreismit/ECE4960/tree/master/Lab5).
