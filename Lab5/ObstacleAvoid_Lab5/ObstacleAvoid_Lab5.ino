@@ -63,8 +63,8 @@ bool whistle;             // Does the board hear a whistling frequency?
 int right=0; int left=1;  // addresses for R and L drive banks
 int power;                // power to send to motors
 int powerTurn = 255;      // power to send to motors when spinning in place
-float m=0.08;              // proportionality constant: y (power) = mx+b where x is the distance sensed
-int b=20;                 // b in the linear proportionality relation
+float m=0.1;              // proportionality constant: y (power) = mx+b where x is the distance sensed
+int b=30;                 // b in the linear proportionality relation
 int brake;
 int offset = 4;           // left side gets (offset) more power than right side
 float calib = 1.08;        // left side gets (calib) times more power than right
@@ -171,7 +171,7 @@ void loop(void)
       myMotorDriver.setDrive( left, 1, 0);
     }
   }
-  if(distance < 200){
+  if(distance < 250){
     t = millis();
     // Hard stop
     myMotorDriver.setDrive( right, 0, brake);
@@ -186,7 +186,7 @@ void loop(void)
     // Actually, drive in a backward arc. This is better for not running the wheels into things.
     myMotorDriver.setDrive( right, 1, 0);                     
     
-    while (millis()-t < 200){ // Wait for a specified time, but keep updating the PDM data
+    while (millis()-t < 400){ // Wait for a specified time, but keep updating the PDM data
       myPDM.getData(pdmDataBuffer, pdmDataBufferSize);
     }
   }
