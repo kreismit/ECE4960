@@ -842,10 +842,10 @@ Serial.printf("%4.2f,%4.2f\n",roll,pitch);
 
 Below is the output as I moved from -90° to 0° to 90° in roll and pitch, respectively.
 
-![Roll Screenshot](Screenshot_2020-10-15_11-14-32.png)
+![Roll Screenshot](Lab6/Images/Screenshot_2020-10-15_11-14-32.png)
 Figure 4. Accelerometer angle readings from roll at right angles.
 
-![Pitch Screenshot](Screenshot_2020-10-15_11-16-10.png)
+![Pitch Screenshot](Lab6/Images/Screenshot_2020-10-15_11-16-10.png)
 Figure 5. Accelerometer angle readings from pitch at right angles.
 
 The accelerometer is quite accurate (though noisy.) Using SerialPlot, I found that it detected the 5° tilt of the top of the robot (since it's curved and the IMU is mounted toward the front, the Y angle is slightly positive). However, it consistently reads about 88° tilt when I tilt it 90° &ndash; probably for the same reason it reads more than 1 *g* when it's level: calibration.
@@ -854,16 +854,24 @@ The accelerometer is quite accurate (though noisy.) Using SerialPlot, I found th
 
 The gyroscope angles were much less noisy, since the angle is acquired by integrating the rate, the angle looks like it's been through a low-pass filter. Precise calibration is difficult, however, since the gyroscope's angular rate measurements change both in short and in long time spans. So, some drift in the readings is inevitable. (In another project, I sometimes achieved 1°/hour or less. But not consistently.) Below are the results of the same two tests I ran on the accelerometer tilt sensing, plus an additional yaw axis.
 
-![Roll Screenshot](Screenshot_2020-10-15_18-35-19.png)
+![Roll Screenshot](Lab6/Images/Screenshot_2020-10-15_18-35-19.png)
 Figure 6. Gyro angle readings from roll at right angles.
 
-![Pitch Screenshot](Screenshot_2020-10-15_18-37-12.png)
+![Pitch Screenshot](Lab6/Images/Screenshot_2020-10-15_18-37-12.png)
 Figure 7. Gyro angle readings from pitch at right angles.
 
-![Yaw Screenshot](Screenshot_2020-10-15_18-38-07.png)
+![Yaw Screenshot](Lab6/Images/Screenshot_2020-10-15_18-38-07.png)
 Figure 8. Gyro angle readings from yaw at right angles.
 
 Note how stable the readings are, compared to those of the accelerometer. The wiggles in the graph are *real* - they were when I was positioning the robot or not holding it perfectly still. Thus, in a sense it's much more accurate than the accelerometer. But, that assumes a good calibration. The error in the first screenshot (about 5°) is due to drift. Below is a result of a bad calibration.
 
-![Stationary Screenshot](Screenshot_2020-10-15_18-33-32.png)
 Figure 9. Calibration doesn't always work.
+![Stationary Screenshot](Lab6/Images/Screenshot_2020-10-15_18-33-32.png)
+
+When I tried sampling rates of 1 kHz or less, I noticed that *the integration was always more accurate with a faster sampling rate.* Even with long calibration times like 10s, slow sampling rates like 10 Hz predictably experienced bad drift. My explanation is that the noise in the gyro is aliased when the measurement frequency is too low; the aliasing effect worsens when the measurement frequency is farther off. I expected that increasing the sampling rate for calibration and decreasing it for measurement would be a good compromise; but actually both matter. I tried removing delays altogether, giving a sampling rate of about 10 kHz (the baud rate seemed to be the limiting factor). The result was no more accurate, and there were massive spikes in some readings. Usually the reading returned to normal in the next run of the loop, but sometimes it didn't and there was a permanent offset. My explanation of this is that a noise spike coincided with a very quick loop cycle.
+
+I left the wait time at 10ms (100Hz sampling rate) for the rest of the lab.
+
+I got the best results thus far from a complementary filter with α=0.3 and a correction factor of 1 for the accelerometer. α=0.5 works fine, but is noisy.
+
+![Complementary Filter with α=0.3](Lab6/Images/RPYCompFilter0.3.png)
