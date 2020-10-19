@@ -9,6 +9,7 @@ typedef enum
   GET_MOTORS,
   RES_MOTORS,
   RAMP,
+  SPIN,
   SER_TX,
   SER_RX,
   REQ_ANGLES,

@@ -97,7 +97,7 @@ byte lRev = 1;
 int offset = 4;               // left side gets (offset) more power than right side
 float calib = 1.08;           // left side gets (calib) times more power than right
 bool rampUp = false, rampDown = false;  // is the turning speed ramping up? ramping down?
-uint16_t rampCount = 50;        // unsigned integer which goes from 0 to 255 and then back
+uint16_t rampCount = 0;        // unsigned integer which goes from 0 to 255 and then back
 uint8_t despacito = 0;        // "slowly" with a reference. count to 10 before incrementing motor power
 
 void setup()
@@ -406,6 +406,13 @@ void loop()
         rampUp = true;
         break;
       }
+      case SPIN:
+      {
+        // Handle constant-rate spin command (workaround for broken SET_MOTOR command)  
+        scmd.setDrive(left, lRev, 44);
+        scmd.setDrive(right, rFwd, 40);
+        break;
+      }
       case SER_RX:
       {
         Serial.println("Got a serial message");
@@ -635,7 +642,7 @@ void loop()
       despacito++;
   }
   else if(rampDown){ // As long as we're ramping down,
-    if(rampCount > 50 && despacito==10){ // and we haven't reached the min,
+    if(rampCount > 0 && despacito==10){ // and we haven't reached the min,
       //scmd.setDrive(left, lRev, rampCount*calib+offset);
       scmd.setDrive(left, lRev, rampCount);
       scmd.setDrive(right, rFwd, rampCount);

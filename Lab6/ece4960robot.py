@@ -18,7 +18,7 @@ class Robot:
                 "Cannot use pygatt and bleak backends concurrently")
         self.messageQueue = list()
         self.theLock = Lock()
-        self.mValues = {"left": 0, "right": 0}
+        self.mValues = {"left": 0, "right": 1}
         self.lastTime = time.time()
         self.keyStatus = {"up": False, "down": False,
                           "left": False, "right": False}
@@ -76,6 +76,7 @@ class Robot:
         with self.theLock:
             try:
                 self.mValues[m] = value
+                self.updateFlag = True
                 #self.refreshMotors()
             except KeyError:
                 pass

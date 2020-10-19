@@ -77,7 +77,7 @@ async def robotTest(loop):
             if (code == Commands.GIVE_RAW.value):
                 global xyz
                 xyz = unpack("<III", data)
-                #print(xyz)
+                print(xyz)
 
             # Example of command-response.
             if (code == Commands.PONG.value):
@@ -90,7 +90,7 @@ async def robotTest(loop):
             # 4-byte integer as quickly as possible, both little-endian.
             if (code == Commands.BYTESTREAM_TX.value):
                 print(f"Received {length} bytes of data")
-                print(unpack("<fff",data)) # for 3 32-bit integers
+                print(unpack("<fff",data)) # for 3 32-bit floats
                 #print(unpack("<QQQ",data)) # for 3 64-bit integers
                 #print(data)	# show the raw, for debugging
 
@@ -131,26 +131,35 @@ async def robotTest(loop):
 
         async def myRobotTasks():
             # pass
-                        
+            
             await theRobot.sendCommand(Commands.REQ_RAW) # update sensors
             # PID loop (more likely PI)
             global z, e, tNow, setpoint, inte, xyz
-            zLast = z
-            eLast = e
-            tLast = tNow
-            z = xyz[2]          # current sensor value
-            e = setpoint - z    # error
-            tNow = time.clock_gettime(time.CLOCK_MONOTONIC)
-            dt = tNow - tLast
-            de = e - eLast      # derivative of error
-            inte = inte + e
-            output = kp*e + ki*inte + kd*(de/dt)
-            # write motor power
-            #await theRobot.setMotors(right,rFwd,output)
-            #await theRobot.setMotors(left,lRev,calib*output+offset)
-            await theRobot.sendCommand(Commands.SET_MOTORS, length=3, data=bytearray([right, rFwd, int(output)]))
-            await theRobot.sendCommand(Commands.SET_MOTORS, length=3, data=bytearray([left, lRev, int(calib*output+offset)]))
-            print(output) # for debugging
+            while True:
+                await asyncio.sleep(0.05)
+                zLast = z
+                eLast = e
+                tLast = tNow
+                z = xyz[2]          # current sensor value
+                e = setpoint - z    # error
+                tNow = time.clock_gettime(time.CLOCK_MONOTONIC)
+                dt = tNow - tLast
+                de = e - eLast      # derivative of error
+                inte = inte + e
+                output = kp*e + ki*inte + kd*(de/dt)
+                # write motor power
+                #await theRobot.setMotors(right,rFwd,output)
+                #await theRobot.setMotors(left,lRev,calib*output+offset)
+                #await theRobot.sendCommand(Commands.SET_MOTORS, length=3, data=bytearray([right, rFwd, int(output)]))
+                #await theRobot.sendCommand(Commands.SET_MOTORS, length=3, data=bytearray([left, lRev, int(calib*output+offset)]))
+                if output < 0:          # can't send negative numbers in a bytearray
+                    output = 0
+                elif output > 255:
+                    output = 255
+                output = int(output)    # must be an integer
+                theRobot.updateMotor("left", output)  # left is reversed
+                theRobot.updateMotor("right", output) # right is forward
+                #print(output) # for debugging
 
             # for i in range(0, 50):
             #     print("Sending message")
@@ -164,7 +173,7 @@ async def robotTest(loop):
                 await theRobot.loopTask()
                 await asyncio.sleep(0.1)
 
-        await asyncio.gather(checkMessages(), myRobotTasks())
+        await asyncio.gather(checkMessages(), myRobotTasks(), motorLoop())
         # async for msg in checkMessages():
         #    print(f"BTDebug: {msg}")
 

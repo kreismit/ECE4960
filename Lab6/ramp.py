@@ -110,27 +110,23 @@ async def robotTest(loop):
 
             # await theRobot.ping()
 
-            # await theRobot.sendCommand(Commands.REQ_RAW)
+            await theRobot.sendCommand(Commands.REQ_RAW)
             # All the backbone of this system is already set up. 
             # theRobot.loopTask() sets the motor values "left" and "right"
             # continuously and automatically.
-            for i in range(20):
-                power = 55+10*i;                     # ramp up
+            for i in range(255):
+                power = i                      # ramp up
                 theRobot.updateMotor("left", power)  # left is reversed
                 theRobot.updateMotor("right", power) # right is forward
-                await self.__bleak_setMotors(self.mValues["left"], self.mValues["right"])
-                self.lastTime = time.time()
-                await asyncio.sleep(0.2)
+                await asyncio.sleep(0.05)
             theRobot.updateMotor("left",0)           # stop
             theRobot.updateMotor("right",0)
-            #await self.__bleak_setMotors(self.mValues["left"], self.mValues["right"])
-            #self.lastTime = time.time()
             await asyncio.sleep(1)
-            for i in range(20):
-                power = 255-10*i;                    # ramp down
+            for i in range(256):                # starts at 0, ends at 256
+                power = 255-i                     # ramp down
                 theRobot.updateMotor("left", power)  # left is reversed
                 theRobot.updateMotor("right", power) # right is forward
-                await asyncio.sleep(0.2)
+                await asyncio.sleep(0.05)
             theRobot.updateMotor("left",0)           # stop
             theRobot.updateMotor("right",0)
             await asyncio.sleep(1)

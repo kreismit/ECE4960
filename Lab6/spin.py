@@ -7,9 +7,10 @@ from ece4960robot import Robot
 from settings import Settings
 from struct import unpack, calcsize
 
+global rpy, xyz     # globals for R/P/Y angles and X/Y/Z rot. velocities
 
 async def getRobot():
-    devices = await discover(device=Settings["adapter"], timeout=2)
+    devices = await discover(device=Settings["adapter"], timeout=5)
     # for d in devices:
     #    print(d.name)
     p_robot = [d for d in devices if d.name == "MyRobot"]
@@ -52,7 +53,7 @@ async def robotTest(loop):
 
             # Unpack an array of 3 raw readings: little-endian ints.
             if (code == Commands.GIVE_RAW.value):
-                print(unpack("<fff", data))
+                print(unpack("<III", data))
 
             # Example of command-response.
             if (code == Commands.PONG.value):
@@ -109,22 +110,23 @@ async def robotTest(loop):
 
             # await theRobot.ping()
 
-            await theRobot.sendCommand(Commands.REQ_RAW) # ask for gyro rates
-            await theRobot.sendCommand(Commands.SPIN)    # and start ramping!
-
-            # for i in range(0, 50):
-            #     print("Sending message")
-            #     await theRobot.sendMessage("Testing message")
-            #     await asyncio.sleep(1)
-
-            # await theRobot.testByteStream(4)
+            await theRobot.sendCommand(Commands.REQ_RAW)
+            # All the backbone of this system is already set up. 
+            # theRobot.loopTask() sets the motor values "left" and "right"
+            # continuously and automatically.
+            power = 40                          # spin slowly
+            theRobot.updateMotor("left", power)  # left is reversed
+            theRobot.updateMotor("right", power) # right is forward
+            await asyncio.sleep(10)
+            theRobot.updateMotor("left",0)           # stop
+            theRobot.updateMotor("right",0)
 
         async def motorLoop():
             while True:
                 await theRobot.loopTask()
                 await asyncio.sleep(0.1)
 
-        await asyncio.gather(checkMessages(), myRobotTasks())
+        await asyncio.gather(checkMessages(), myRobotTasks(), motorLoop())
         # async for msg in checkMessages():
         #    print(f"BTDebug: {msg}")
 
