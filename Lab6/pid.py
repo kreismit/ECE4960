@@ -9,8 +9,8 @@ from struct import unpack, calcsize
 
 # Initialize stuff for PID
 xyz = (0,0,0)   # sensor reading tuple
-setpoint = 10   # also known as reference, "r"
-kp = 1          # proportional gain
+setpoint = 100  # also known as reference, "r"
+kp = 2          # proportional gain
 ki = 0          # integral gain
 kd = 0          # derivative gain
 z = 0           # current angular velocity

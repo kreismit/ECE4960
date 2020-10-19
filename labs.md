@@ -920,7 +920,7 @@ Figure 13. Magnetometer angle readings: decently accurate until the motors turn.
 Below is my data from a smooth ramp that incremented/decremented the motor power every 100 ms. Since the right and left drive power values were the same, the robot made a bad point turn; the left wheel tended to start spinning before the right.
 
 ![Ramp data](Lab6/Images/RampStationary.png)
-Figure 14. Speed of the robot when ramping the motors. :(
+Figure 14. Speed of the robot when ramping the motors. (The robot's motors whined and would not turn; the battery was dead.)
 
 On a smooth table, I found that the minimum rotational speed I could maintain *for a very short time* was about 50 °/s.
 
@@ -929,6 +929,8 @@ This minimum speed would indicate that the points detected by the ToF sensor wil
 [//]: # (where the limiting factor is the timing budget, and the time between measurements may be zero.)
 
 To accurately spin the robot in place, I chose to use PI control (no derivative) because the robot is a first-order system and its transfer function is already stable without adding derivative. Below are some graphs that demonstrate my tuning process: raise Kₚ until the system rings, reduce Kₚ, raise Kᵢ until it overshoots too much, drop Kᵢ, and raise Kᵢ again. I used only the gyroscope to measure yaw rates. I used the linear scaling from Lab 4 to compensate for the difference between the right motor and the left.
+
+Figure 0. I had difficulty charging my NiCd batteries. As a result, the robot would not move regardless of motor power applied, which is why this data is missing.
 
 The minimum rotational speed I could maintain was now xx °/s using the feedback loop. This should allow much closer points.
 
