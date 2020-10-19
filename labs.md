@@ -805,13 +805,22 @@ See all my code [here on GitHub](https://github.com/kreismit/ECE4960/tree/master
         
 ## Procedure
 
+### Physical Robot (part *a*)
 Reviewed the [Sparkfun product info and documentation](https://www.sparkfun.com/products/15335) for the [ICM-20948 IMU](https://cdn.sparkfun.com/assets/7/f/e/c/d/DS-000189-ICM-20948-v1.3.pdf). Noted (among other things) that the default I²C address is `0x69`.
 
 With the "SparkFun 9DoF IMU Breakout - ICM 20948 - Arduino Library" installed, and the IMU connected to the Artemis via a Qwiic cable, ran the `Example1_Wire` Arduino sketch (Arduino IDE: File > Examples > Wire (under "Examples for Artemis RedBoard Nano"). Confirmed the default I²C address.
 
 Ran the `Example1_Basics` Arduino sketch (accessed from the IDE by File > Examples > SparkFun 9DoF IMU Breakout - ICM 20948 - Arduino Library). Confirmed that the IMU read out sensible values on all nine axes. 
 
+Wrote code to calculate the tilt angle using the accelerometer. Wrote code to calculate roll, pitch, and yaw using the gyroscope. Wrote code to calculate the yaw angle using the magnetometer. Wrote sensor fusion code using the accelerometer and the gyroscope.
 
+Added features to the Bluetooth communication code allowing it to send IMU data over Bluetooth. Modified command set to add a "ramp" command and a "spin" command; the former ramped the motors from a low number to 255, and the latter attempted to spin at a constant rate using PI control.
+
+### Simulation (part *b*)
+
+Downloaded and extracted the [lab six base code](https://cornell.box.com/s/psr506o6sw2l65fw6q98khu0fjdwvydk). In the VM, entered the folder and ran `./setup.sh`. Closed and reopened the terminal window. Started `lab6-manager` and `robot-keyboard-teleop`. Entered `/home/artemis/catkin_ws/src/lab6/scripts` and started `jupyter lab`. Ensured the notebook kernel used Python 3.
+
+Followed the notebook instructions.
 
 ## Results and Notes
 
@@ -865,13 +874,52 @@ Figure 8. Gyro angle readings from yaw at right angles.
 
 Note how stable the readings are, compared to those of the accelerometer. The wiggles in the graph are *real* - they were when I was positioning the robot or not holding it perfectly still. Thus, in a sense it's much more accurate than the accelerometer. But, that assumes a good calibration. The error in the first screenshot (about 5°) is due to drift. Below is a result of a bad calibration.
 
-Figure 9. Calibration doesn't always work.
 ![Stationary Screenshot](Lab6/Images/Screenshot_2020-10-15_18-33-32.png)
+Figure 9. Calibration doesn't always work.
 
 When I tried sampling rates of 1 kHz or less, I noticed that *the integration was always more accurate with a faster sampling rate.* Even with long calibration times like 10s, slow sampling rates like 10 Hz predictably experienced bad drift. My explanation is that the noise in the gyro is aliased when the measurement frequency is too low; the aliasing effect worsens when the measurement frequency is farther off. I expected that increasing the sampling rate for calibration and decreasing it for measurement would be a good compromise; but actually both matter. I tried removing delays altogether, giving a sampling rate of about 10 kHz (the baud rate seemed to be the limiting factor). The result was no more accurate, and there were massive spikes in some readings. Usually the reading returned to normal in the next run of the loop, but sometimes it didn't and there was a permanent offset. My explanation of this is that a noise spike coincided with a very quick loop cycle.
 
 I left the wait time at 10ms (100Hz sampling rate) for the rest of the lab.
 
-I got the best results thus far from a complementary filter with α=0.3 and a correction factor of 1 for the accelerometer. α=0.5 works fine, but is noisy.
+I got the best results thus far from a complementary filter with α=0.3 and a correction factor of 1 for the accelerometer. α=0.5 works fine, but is noisy. Note that most of the bumps in this graph are from my imperfect movements.
 
 ![Complementary Filter with α=0.3](Lab6/Images/RPYCompFilter0.3.png)
+Figure 10. Roll, pitch, and yaw tests; roll and pitch have a complementary filter with α=0.3 in favor of the gyroscope.
+
+### Finding Angles from the Magnetometer
+
+This was very disappointing. I did not realize how many magnets we have in our daily lives. Besides obvious things like DC motors and power supplies, there are magnets to hold our laptops shut, magnets in screwdrivers, magnets in homes, and generally lots of steel beams to make things worse. Moving the IMU into the center of my room, away from my computer and tools that might be magnetic, I still saw a constant magnetic field of 50 μT down into the floor. My guess is that I live under a washing machine. The robot's DC motors are much more significant, as the below graph shows (robot pointing approx. north):
+
+![Magnetometer Readings Screenshot](Lab6/Images/Screenshot_2020-10-17_12-10-33.png)
+Figure 11. Magnetometer readings on top of the chassis, sitting still.
+
+There does seem to be a small (60 Hz?) oscillation superimposed on the constant field (magnitude about 1000 μT where the IMU is). But the bigger problem is the result of spinning the motors. When I roll the robot back and forth with my hand:
+
+![Magnetometer Readings Screenshot](Lab6/Images/Screenshot_2020-10-17_12-12-54.png)
+Figure 12. Magnetometer readings when backdriving the motors.
+
+I was able to calibrate away all the constant fields and achieve sensible angle readings as long as the wheels didn't turn. However, the change in magnetic field when the wheels turn is of similar magnitude to that of the Earth (about 20 μT amplitude.)
+
+![Magnetometer Angle Readings Screenshot](Lab6/Images/Screenshot_2020-10-17_12-05-26.png)
+
+The best hope of eliminating this is to do what Cornell Mars Rover did to make their magnetometer work: move it away from magnetic fields. I intend to accomplish this using a 3D-printed mount which puts it farther away from the motors.
+
+### PID Control
+
+I am currently using the slightly drifting (about 1°/minute) gyroscope for all the yaw readings here, since the magnetometer angle sensing is not yet reliable.
+
+Below is my data from a smooth ramp that incremented/decremented the motor power every 100 ms. The robot spun in place; the right and left drive power values were not the same, but were calculated using the same calibration factor used in Lab 4. A conditional statement prevented the power value from overflowing.
+
+![Ramp data](Lab6/Images/RampStationary.png)
+
+I found that the minimum rotational speed I could maintain was about xx °/s. This depended on the surface the robot drove on.
+
+I chose to use PI control (without derivative) because the robot is a first-order system and its transfer function is already stable without adding derivative. Below are some graphs that demonstrate my tuning process.
+
+### Simulation
+
+I convinced myself that more than 10 points per second was excessive, based on the speed of readings I got in SerialPlot earlier in this lab. I also tried using plotting rates of less than 10 points/sec and found that the dots were sparse when the robot drove faster. So, I stuck with 10 points/sec.
+
+The odometry readings looked similar to the ground truth, but they were offset and rotated. The amount of the offset and rotation increased with time (even when the robot was stationary), as I would expect with IMU drift. The noise in the points was surprisingly small compared to the movement of the robot. Not surprisingly, dragging the robot around by hand completely threw off the odometry.
+
+<video width=600 controls><source src="Lab6/Videos/Simulation1.mp4" type="video/mp4"></video>
