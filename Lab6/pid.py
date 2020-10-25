@@ -12,9 +12,11 @@ xyzd = (0,0,0,0)   # sensor reading tuple
 rpy = (0,0,0,0)  # calculated angle tuple
 levels = (0,0)  # motor output tuple
 setpoint = 300  # also known as reference, "r"
-kp = 0.75       # proportional gain
-ki = 0.1        # integral gain
-kd = 0          # derivative gain
+kp = 0.4        # proportional gain
+ki = 4.0        # integral gain
+# For ki=1, the motor power increases by 1 after e=1 for 1 sec.
+kd = 0.1        # derivative gain
+# For kd=1, the motor power increases by 1 when e drops by 1/sec.
 z = 0           # current angular velocity
 e = setpoint    # current error for PID loop
 inte = 0        # integral of error
@@ -148,7 +150,7 @@ async def robotTest(loop):
             # PID loop (currently PI)
             global z, e, tNow, setpoint, inte, kp, ki, kd, xyzd, levels
             while True:
-                await asyncio.sleep(0.05)
+                await asyncio.sleep(0.02)
                 zLast = z
                 eLast = e
                 tLast = tNow
@@ -186,7 +188,7 @@ async def robotTest(loop):
         async def motorLoop():
             while True:
                 await theRobot.loopTask()
-                await asyncio.sleep(0.1)
+                await asyncio.sleep(0.01)
 
         await asyncio.gather(checkMessages(), myRobotTasks(), motorLoop())
         # async for msg in checkMessages():

@@ -1139,4 +1139,15 @@ Followed the instructions in the Jupyter lab; wrote the pseudocode below to desc
 
 ## Lab 7a: Results
 
- <embed type="text/plain" src="Lab7/pseudocode" width="500" height="300"></embed>
+<object data="Lab7/pseudocode" type="text/plain"
+width="500" style="height: 300px">
+<a href="/path_to_text_file/text.txt">Embed isn't working</a>
+</object>
+
+## Lab 7b: Procedure
+
+Chose to map out the kitchen. Measured and drew a scale drawing of the kitchen; chose three positions from which to generate the map.
+
+TODO:
+Generated a map using the coordinate offsets of those three positions. Plotted it in the plotter.
+

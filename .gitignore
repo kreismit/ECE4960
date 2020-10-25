@@ -1,4 +1,6 @@
 # Exclude labXX_base_code directories
 lab*_base_code/
+# Python cache
+*/__pycache__/
 # and backup files
 **/*.old
