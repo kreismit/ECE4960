@@ -1,0 +1,4 @@
+# Exclude labXX_base_code directories
+lab*_base_code/
+# and backup files
+**/*.old

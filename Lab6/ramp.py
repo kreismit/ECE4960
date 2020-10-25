@@ -7,7 +7,9 @@ from ece4960robot import Robot
 from settings import Settings
 from struct import unpack, calcsize
 
-global rpy, xyz     # globals for R/P/Y angles and X/Y/Z rot. velocities
+rpy = (0,0,0,0)
+xyzd = (0,0,0,0)     # globals for R/P/Y angles and X/Y/Z rot. velocities
+levels = (0,0)      # global tuple for motor values
 
 async def getRobot():
     devices = await discover(device=Settings["adapter"], timeout=5)
@@ -29,7 +31,7 @@ async def robotTest(loop):
     # bytes(type + length + data)
     # This struct shouldn't be more than 99 bytes long.
     def simpleHandler(handle, value):
-        global time  # This is apparently needed.
+        global time,xyzd,rpy,levels  # This is apparently needed.
         if (value == "enq".encode()):
             pass
         else:
@@ -49,11 +51,18 @@ async def robotTest(loop):
 
             # Unpack an array of 3 angles, which are little-endian floats.
             if (code == Commands.GIVE_ANGLES.value):
-                print(unpack("<fff", data))
+                rpy = unpack("<ffff", data)
+                #print(rpy)
 
             # Unpack an array of 3 raw readings: little-endian ints.
             if (code == Commands.GIVE_RAW.value):
-                print(unpack("<III", data))
+                xyzd = unpack("<ffff", data)    # float == f
+                #print(xyzd)
+
+            # Unpack the motor power levels
+            if (code == Commands.GET_MOTORS.value):
+                levels = unpack("<BB", data) # uint8_t == B
+                # print(levels) # for debugging
 
             # Example of command-response.
             if (code == Commands.PONG.value):
@@ -66,8 +75,8 @@ async def robotTest(loop):
             # 4-byte integer as quickly as possible, both little-endian.
             if (code == Commands.BYTESTREAM_TX.value):
                 print(f"Received {length} bytes of data")
-                print(unpack("<fff",data)) # for 3 32-bit integers
-                #print(unpack("<QQQ",data)) # for 3 64-bit integers
+                print(unpack("<fff",data)) # float == f
+                #print(unpack("<QQQ",data)) # unsigned long (long) == Q
                 #print(data)	# show the raw, for debugging
 
     async def checkMessages():
@@ -106,29 +115,42 @@ async def robotTest(loop):
         # await client.write_gatt_char(Descriptors["RX_CHAR_UUID"].value, msg)
 
         async def myRobotTasks():
-            # pass
+            global xyzd, levels  # Python's dark side: globals aren't global unless you declare them again!
 
             # await theRobot.ping()
-
+            '''
+            Sending motor values: 0 is full speed reverse and 255 is full speed ahead.
+            128, halfway in the middle, is stop. The reason for this is that Python is
+            sending a single-byte value, but the motor take a byte for the power level
+            and a bit for the direction.
+            '''
             await theRobot.sendCommand(Commands.REQ_RAW)
             # All the backbone of this system is already set up. 
             # theRobot.loopTask() sets the motor values "left" and "right"
             # continuously and automatically.
-            for i in range(255):
+            for i in range(128,256):           # starts at 128, ends at 255
                 power = i                      # ramp up
+                motorPower = int(2*(power-127.5))   # parse the motor power as the robot would
                 theRobot.updateMotor("left", power)  # left is reversed
                 theRobot.updateMotor("right", power) # right is forward
+                # Every loop, display actual speed and motor power
+                print("{},{}".format(xyzd[2],levels[1])) # note that the two motor powers are the same
                 await asyncio.sleep(0.05)
-            theRobot.updateMotor("left",0)           # stop
-            theRobot.updateMotor("right",0)
-            await asyncio.sleep(1)
-            for i in range(256):                # starts at 0, ends at 256
-                power = 255-i                     # ramp down
+            # await asyncio.sleep(1) # easy but doesn't give continuous motor power readings
+            for i in range(20):
+                # Every loop, display actual speed and motor power
+                print("{},{}".format(xyzd[2],levels[1]))    # these should be nearly constant
+                await asyncio.sleep(0.05)
+            for i in range(255,127,-1):       # starts at 255, ends at 128
+                power = i                     # ramp down
+                motorPower = int(2*(power-127.5))   # parse the motor power as the robot would
                 theRobot.updateMotor("left", power)  # left is reversed
                 theRobot.updateMotor("right", power) # right is forward
+                # Every loop, display actual speed and motor power
+                print("{},{}".format(xyzd[2],levels[1]))
                 await asyncio.sleep(0.05)
-            theRobot.updateMotor("left",0)           # stop
-            theRobot.updateMotor("right",0)
+            theRobot.updateMotor("left",128)           # stop
+            theRobot.updateMotor("right",128)
             await asyncio.sleep(1)
             
 

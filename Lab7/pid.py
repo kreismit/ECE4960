@@ -145,8 +145,8 @@ async def robotTest(loop):
             '''
             
             await theRobot.sendCommand(Commands.REQ_RAW) # update sensors
-            # PID loop (currently PI)
-            global z, e, tNow, setpoint, inte, kp, ki, kd, xyzd, levels
+            # PID loop (more likely PI)
+            global z, e, tNow, setpoint, inte, xyzd, levels
             while True:
                 await asyncio.sleep(0.05)
                 zLast = z

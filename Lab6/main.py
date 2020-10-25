@@ -7,9 +7,12 @@ from ece4960robot import Robot
 from settings import Settings
 from struct import unpack, calcsize
 
+rpy = (0,0,0,0)
+xyzd = (0,0,0,0)     # globals for R/P/Y angles and X/Y/Z rot. velocities
+levels = (0,0)      # global tuple for motor values
 
 async def getRobot():
-    devices = await discover(device=Settings["adapter"], timeout=2)
+    devices = await discover(device=Settings["adapter"], timeout=5)
     # for d in devices:
     #    print(d.name)
     p_robot = [d for d in devices if d.name == "MyRobot"]
@@ -28,7 +31,7 @@ async def robotTest(loop):
     # bytes(type + length + data)
     # This struct shouldn't be more than 99 bytes long.
     def simpleHandler(handle, value):
-        global time  # This is apparently needed.
+        global time,xyzd,rpy,levels  # This is apparently needed.
         if (value == "enq".encode()):
             pass
         else:
@@ -48,11 +51,18 @@ async def robotTest(loop):
 
             # Unpack an array of 3 angles, which are little-endian floats.
             if (code == Commands.GIVE_ANGLES.value):
-                print(unpack("<fff", data))
+                rpy = unpack("<ffff", data)
+                #print(rpy)
 
             # Unpack an array of 3 raw readings: little-endian ints.
             if (code == Commands.GIVE_RAW.value):
-                print(unpack("<fff", data))
+                xyzd = unpack("<ffff", data)    # float == f
+                #print(xyzd)
+
+            # Unpack the motor power levels
+            if (code == Commands.GET_MOTORS.value):
+                levels = unpack("<BB", data) # uint8_t == B
+                print(levels) # for debugging
 
             # Example of command-response.
             if (code == Commands.PONG.value):
@@ -65,8 +75,8 @@ async def robotTest(loop):
             # 4-byte integer as quickly as possible, both little-endian.
             if (code == Commands.BYTESTREAM_TX.value):
                 print(f"Received {length} bytes of data")
-                print(unpack("<fff",data)) # for 3 32-bit integers
-                #print(unpack("<QQQ",data)) # for 3 64-bit integers
+                print(unpack("<fff",data)) # float == f
+                #print(unpack("<QQQ",data)) # unsigned long (long) == Q
                 #print(data)	# show the raw, for debugging
 
     async def checkMessages():
@@ -109,8 +119,9 @@ async def robotTest(loop):
 
             # await theRobot.ping()
 
-            await theRobot.sendCommand(Commands.REQ_RAW) # ask for gyro rates
-            await theRobot.sendCommand(Commands.SPIN)    # and start ramping!
+            #await theRobot.sendCommand(Commands.REQ_ANGLES) # ask for gyro rates
+            theRobot.updateMotor("left",0)
+            theRobot.updateMotor("right",255)
 
             # for i in range(0, 50):
             #     print("Sending message")
@@ -124,7 +135,7 @@ async def robotTest(loop):
                 await theRobot.loopTask()
                 await asyncio.sleep(0.1)
 
-        await asyncio.gather(checkMessages(), myRobotTasks())
+        await asyncio.gather(checkMessages(), myRobotTasks(), motorLoop())
         # async for msg in checkMessages():
         #    print(f"BTDebug: {msg}")
 

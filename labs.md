@@ -529,7 +529,7 @@ It was easy to tune the timing so that the robot predictably drove in a perfect 
 
 <video width="600" controls><source src="Lab4/Videos/SimRectangle.mp4" type="video/mp4"></video>
 
-See the rest of my code, and the Jupyter notebook, [here](https://github.com/kreismit/ECE4960/tree/master/Lab4).
+See the rest of my code, and the Jupyter notebook, [here](https://github.com/kreismit/ECE4960/tree/master/Lab4). Also see additional things I learned and notes in the [Other Lessons Learned](https://github.com/kreismit/ECE4960/tree/master/Notes/OtherLessonsLearned.md) page.
 
 
 <h1 id="L5">Lab 5</h1>
@@ -632,7 +632,7 @@ I repeated a few measurements of the desk leg with a ruler instead of the graph 
 
 I also added an additional measurement of the box on its side, ruling out the possibility that it was the object's width and not its surface texture.
 
-![Scatterplot of VCNL Ranging Data](Lab5/Images/VCNL4040SmoothScatter.png]
+![Scatterplot of VCNL Ranging Data](Lab5/Images/VCNL4040SmoothScatter.png)
 Figure 3. Prox data vs. real range.
 
 As the SparkFun hookup guide predicted, the I²C address of the ToF sensor was `0x29`.
@@ -680,14 +680,14 @@ The ToF sensor was much less sensitive to the width of the object being detected
 ![Ranging with door](Lab5/Images/IMG_20201010_114018.jpg)
 Figure 4. Ranging setup with door (using graph paper for 20cm or less). Note: used measuring tape and taller box for long-range testing.
 
-![Scatterplot of VL53 Ranging Data](Lab5/Images/VL53L1X_SR_Scatter.png]
+![Scatterplot of VL53 Ranging Data](Lab5/Images/VL53L1X_SR_Scatter.png)
 Figure 5. Measured range (short range mode) vs. real range.
 
 In the long-range case, my (mini) tape measure was only 1 m long, so I added an 18" ruler at the end of the tape measure to reach 1.4 m. The ToF sensor was surprisingly immune to small changes in angle (probably because the beam spans about 15°); but, when mounted low, it kept picking up the rough carpet, leading to noisy and very inaccurate measurements. To mount the sensor higher, I taped it to the box of the RC car. That is why there is a series which dips back down, and another series labeled "raised".
 
 The VL53L1X ToF sensor didn't seem to see the metal desk leg at all. Hence, I did not gather range data for that. This will obviously cause bloopers when the robot cannot see shiny metal objects. 
 
-![Scatterplot of VL53 Ranging Data](Lab5/Images/VL53L1X_LR_Scatter.png]
+![Scatterplot of VL53 Ranging Data](Lab5/Images/VL53L1X_LR_Scatter.png)
 Figure 6. Measured range (long range mode) vs. real range.
 
 Unfortunately, the SparkFun library doesn't have a function to output the signal or the sigma values. It can only set the thresholds. By default, these are
@@ -733,7 +733,7 @@ Backing up while turning gave even better results. Note the deceleration as it a
 
 <video width="600" controls><source src="Lab5/Videos/secondsuccess.mp4" type="video/mp4"></video>
 
-Coming soon: the robot can drive pretty fast without hitting the wall. Below is a video of it driving down a 0.4m tape strip. Note the deceleration.
+The robot can drive pretty fast without hitting the wall. Below is a video of it driving down a 0.4m tape strip. Note the deceleration.
 
 <video width="600" controls><source src="Lab5/Videos/speedtest.mp4" type="video/mp4"></video>
 
@@ -742,6 +742,10 @@ This one is faster, after I get the robot to aim the right direction:
 <video width="600" controls><source src="Lab5/Videos/dodge.mp4" type="video/mp4"></video>
 
 See all my range measurements, pictures, videos, and code [here on GitHub](https://github.com/kreismit/ECE4960/tree/master/Lab5).
+
+##### Physical Robot - Data
+
+Ex post facto, I realized that I typed square brackets instead of parentheses when inserting my graphs. See above for the data which was there, but not there. Adding to Lessons Learned.
 
 ### Simulation
 
@@ -774,7 +778,7 @@ The reasoning for this is to allow the robot to "follow" walls to which it is ne
 
 <video width=600 controls><source src="Lab5/Videos/SimObstAvoid.mp4" type="video/mp4"></video>
 
-See all my code [here on GitHub](https://github.com/kreismit/ECE4960/tree/master/Lab5).
+See all my code [here on GitHub](https://github.com/kreismit/ECE4960/tree/master/Lab5). Also see additional things I learned and notes in the [Other Lessons Learned](https://github.com/kreismit/ECE4960/tree/master/Notes/OtherLessonsLearned.md) page.
 
 <h1 id="L6">Lab 6</h1>
 
@@ -861,7 +865,33 @@ The accelerometer is quite accurate (though noisy.) Using SerialPlot, I found th
 
 ### Finding Angles from Gyroscope Data
 
-The gyroscope angles were much less noisy, since the angle is acquired by integrating the rate, the angle looks like it's been through a low-pass filter. Precise calibration is difficult, however, since the gyroscope's angular rate measurements change both in short and in long time spans. So, some drift in the readings is inevitable.
+The gyroscope angles were much less noisy, since the angle is acquired by integrating the rate, the angle looks like it's been through a low-pass filter. 
+Precise calibration is difficult, since the gyroscope's angular rate measurements change both in short and in long time spans. So, some drift in the readings is inevitable, but this calibration code worked well.
+
+```C++
+  //// Calibrate gyroscope angles
+  //Serial.println("Calibrating gyro...");
+  int tCal = calTime*1000000;       // 1 sec = 1000000 microseconds
+  float thXCal = 0, thYCal = 0, thZCal = 0; // angles to measure during calibration while the gyro is stationary
+  tNow = micros();
+  int tStartCal = tNow;             // starting calibration now!
+  while(tNow-tStartCal < tCal){     // run for tCal microseconds (plus one loop)
+    tLast = tNow;                   // what was new has grown old
+    delay(tWait);
+    myICM.getAGMT();                // The values are only updated when you call 'getAGMT'
+    tNow = micros();                // update current time
+    dt = (float) (tNow-tLast)*0.000001; // calculate change in time in seconds
+    omX = myICM.gyrX(); omY = myICM.gyrY(); omZ = myICM.gyrZ(); // omega's (angular velocities) about all 3 axes
+    thXCal = thXCal + omX*dt;                 // update rotation angles about X (roll)
+    thYCal = thYCal + omY*dt;                 // Y (pitch)
+    thZCal = thZCal + omZ*dt;                 // and Z (yaw)
+  }
+  // and we want the average rotation rate in deg/s after that loop
+  omXCal = thXCal / calTime;
+  omYCal = thYCal / calTime;
+  omZCal = thZCal / calTime;
+  //Serial.printf("Calibration offsets: X %6.4f, Y %6.4f, Z %6.4f degrees per second\n",omXCal,omYCal,omZCal);
+```
 
 [//]: # (In another project, I sometimes achieved 1°/hour or less. But not consistently.) 
 
@@ -876,7 +906,7 @@ Figure 7. Gyro angle readings from pitch at right angles.
 ![Yaw Screenshot](Lab6/Images/Screenshot_2020-10-15_18-38-07.png)
 Figure 8. Gyro angle readings from yaw at right angles.
 
-Note how stable the readings are, compared to those of the accelerometer. The wiggles in the graph are *real* - they were when I was positioning the robot or not holding it perfectly still. However, the gyro readings can be ruined by bad calibration.
+Note how stable the readings are, compared to those of the accelerometer. The wiggles in the graph are *real* - I was repositioning the robot or not holding it perfectly still. However, the gyro readings can be ruined by bad calibration.
 
 ![Stationary Screenshot](Lab6/Images/Screenshot_2020-10-15_18-33-32.png)
 Figure 9. Calibration doesn't always work.
@@ -896,6 +926,33 @@ I got the best results thus far from a complementary filter with α=0.3 and a co
 ![Complementary Filter with α=0.3](Lab6/Images/RPYCompFilter0.3.png)
 Figure 10. Roll, pitch, and yaw tests; roll and pitch have a complementary filter with α=0.3 in favor of the gyroscope.
 
+```C++
+  if( myICM.dataReady() ){
+    myICM.getAGMT();                // The values are only updated when you call 'getAGMT'
+    tLast = tNow;                   // the new has grown old
+    tNow = micros();
+    dt = (float) (tNow-tLast)*0.000001; // calculate change in time in seconds
+    // printRawAGMT( myICM.agmt );     // Uncomment this to see the raw values, taken directly from the agmt structure
+    // printScaledAGMT( myICM.agmt);   // This function takes into account the scale settings from when the measurement was made to calculate the values with units
+    aX = myICM.accX(); aY = myICM.accY(); aZ = myICM.accZ();
+    omX = myICM.gyrX()-omXCal;          // omega's (angular velocities) about all 3 axes
+    omY = myICM.gyrY()-omYCal;
+    omZ = myICM.gyrZ()-omZCal;
+    thX = thX + omX*dt;                 // update rotation angles about X (roll)
+    thY = thY + omY*dt;                 // Y (pitch)
+    thZ = thZ + omZ*dt;                 // and Z (yaw)
+    a = sqrt(pow(aX,2)+pow(aY,2)+pow(aZ,2));  // calculate total acceleration
+    rollXL = asin(aY/a)*compFactorRoll*rad2deg;
+    pitchXL = asin(aX/a)*compFactorPitch*rad2deg;
+    roll = alpha*rollXL + (1-alpha)*thX;  // complementary filter
+    pitch = alpha*pitchXL + (1-alpha)*thY;
+    thX = roll; thY = pitch;              // overwrite any gyro drift
+    yaw = thZ;                            // still waiting for the magnetometer
+    Serial.printf("%4.2f,%4.2f,%4.2f\n",roll,pitch,yaw); // and print them
+    delay(tWait);
+  }
+```
+
 ### Finding Angles from the Magnetometer
 
 Besides obvious things like DC motors, there are magnets to hold our laptops shut, magnets in screwdrivers, and lots of steel beams in buildings. Moving the IMU into the center of my room, away from known magnets, I still saw a constant magnetic field of 50 μT into the floor. Worse, the field near the DC motors is about 1000 μT compared to 25-65 μT from Earth.
@@ -913,32 +970,144 @@ I was able to calibrate away all the constant fields and achieve sensible angle 
 ![Magnetometer Angle Readings Screenshot](Lab6/Images/Screenshot_2020-10-17_12-05-26.png)
 Figure 13. Magnetometer angle readings: decently accurate until the motors turn.
 
+```C++
+  //// Calibrate gyroscope and magnetometer readings
+  // For magnetometer calibration to work, it must begin pointing north.
+  //Serial.println("Point me north!")
+  //delay(1000);
+Serial.println("Calibrating...");
+  int tCal = calTime*1000000;       // 1 sec = 1000000 microseconds
+  float thXCal = 0, thYCal = 0, thZCal = 0; // angles to measure during calibration while the gyro is stationary
+  tNow = micros();
+  int tStartCal = tNow;             // starting calibration now!
+  while(tNow-tStartCal < tCal){     // run for tCal microseconds (plus one loop)
+    if( myICM.dataReady() ){
+      tLast = tNow;                   // what was new has grown old
+      delay(tWait);
+      myICM.getAGMT();                // The values are only updated when you call 'getAGMT'
+      tNow = micros();                // update current time
+      dt = (float) (tNow-tLast)*0.000001; // calculate change in time in seconds
+      omX = myICM.gyrX(); omY = myICM.gyrY(); omZ = myICM.gyrZ(); // omega's (angular velocities) about all 3 axes
+      thXCal = thXCal + omX*dt;                 // update rotation angles about X (roll)
+      thYCal = thYCal + omY*dt;                 // Y (pitch)
+      thZCal = thZCal + omZ*dt;                 // and Z (yaw)
+      mXCal = mXCal + myICM.magX();
+      mYCal = mYCal + myICM.magY();
+      mZCal = mZCal + myICM.magZ();
+      count++;      // total number of magnetometer readings taken (for gyro we care about rate; for mag we care about total)
+    }
+  }
+  // and we want the average rotation rate in deg/s after that loop
+  omXCal = thXCal / calTime;
+  omYCal = thYCal / calTime;
+  omZCal = thZCal / calTime;
+  mXCal = mXCal / count;
+  mXCal = mXCal - 40;   // Compensate for the earth's magnetic field
+  mYCal = mYCal / count;
+  mZCal = mZCal / count;
+  //Serial.printf("Calibration offsets: X %6.4f, Y %6.4f, Z %6.4f degrees per second\n",omXCal,omYCal,omZCal);
+
+
+// Loop: Read angles
+if( myICM.dataReady() ){
+    myICM.getAGMT();                // The values are only updated when you call 'getAGMT'
+    tLast = tNow;                   // the new has grown old
+    tNow = micros();
+    dt = (float) (tNow-tLast)*0.000001; // calculate change in time in seconds
+    // printRawAGMT( myICM.agmt );     // Uncomment this to see the raw values, taken directly from the agmt structure
+    // printScaledAGMT( myICM.agmt);   // This function takes into account the scale settings from when the measurement was made to calculate the values with units
+    aX = myICM.accX(); aY = myICM.accY(); aZ = myICM.accZ();
+    omX = myICM.gyrX()-omXCal;          // omega's (angular velocities) about all 3 axes
+    omY = myICM.gyrY()-omYCal;
+    omZ = myICM.gyrZ()-omZCal;
+    mX = myICM.magX()-mXCal;            // m's (normalized magnetometer readings) along all 3 axes
+    mY = myICM.magY()-mYCal;
+    mZ = myICM.magZ()-mZCal;
+    thX = thX + omX*dt;                 // update rotation angles about X (roll)
+    thY = thY + omY*dt;                 // Y (pitch)
+    thZ = thZ + omZ*dt;                 // and Z (yaw)
+    a = sqrt(pow(aX,2)+pow(aY,2)+pow(aZ,2));  // calculate total acceleration
+    rollXL = asin(aY/a)*compFactorRoll*rad2deg;
+    pitchXL = asin(aX/a)*compFactorPitch*rad2deg;
+    roll = alpha*rollXL + (1-alpha)*thX;  // complementary filter
+    pitch = alpha*pitchXL + (1-alpha)*thY;
+    thX = roll; thY = pitch;              // overwrite any gyro drift
+    //yaw = thZ;                            // not doing complementary filter yet
+    rollRad = roll*deg2rad; pitchRad = pitch*deg2rad;
+    xm = mX*cos(pitchRad) + mZ*sin(pitchRad);
+    ym = mY*cos(rollRad) + mZ*sin(rollRad);
+    mTotal = sqrt(pow(xm,2)+pow(ym,2)); // total in-plane magnetic field
+    yaw = atan2(ym, xm)*rad2deg;      // noisy near asymptotes
+    //yaw = acos(xm/mTotal)*rad2deg;      // will this work? (no)
+    Serial.printf("%4.2f,%4.2f,%4.2f\n",roll,pitch,yaw); // and print them
+    delay(tWait);
+```
+
 [//]: # (I intend to solve this problem in the long-term using a 3D-printed IMU mount which locates it away from the motors.)
 
 ### PID Control
 
-Below is my data from a smooth ramp that incremented/decremented the motor power every 100 ms. Since the right and left drive power values were the same, the robot made a bad point turn; the left wheel tended to start spinning before the right.
+Below is my data from a smooth ramp that incremented/decremented the motor power every 50 ms. Since the right and left drive power values were the same, the robot made a bad point turn; the left wheel tended to start spinning before the right. The below graph shows one of several tries. I chose a maximum of 500°/s based on testing on asphalt; clearly, the maximum speed is different on a kitchen floor.
 
-![Ramp data](Lab6/Images/RampStationary.png)
-Figure 14. Speed of the robot when ramping the motors. (The robot's motors whined and would not turn; the battery was dead.)
+![Ramp data](Lab6/Images/RampResponse.png)
+Figure 14. Open-loop ramp response. Note the deadband in the beginning. The gyro maxed out at 500°/s. The two wheels started spinning at nearly the same time. The bumps in the motor power graph are due to lost Bluetooth communication at a distance of 8ft. "Adjusted" power is scaled to &pm;127.
 
-On a smooth table, I found that the minimum rotational speed I could maintain *for a very short time* was about 50 °/s.
+On a smooth table, I found that the minimum rotational speed I could maintain was about 250°/s! This minimum speed would indicate that the points detected by the ToF sensor will be far apart. I found that the *optimal* sampling time for the ToF is 50-60 ms; per the datasheet, the *minimum* sampling time is 20 ms. Thus, I calculated the average distance between sensed points as 11 cm! A little noise will significantly affect the generated map.
 
-This minimum speed would indicate that the points detected by the ToF sensor will be far apart. I found that the *optimal* sampling time for the ToF is 50-60 ms; per the datasheet, the *minimum* sampling time is 20 ms. Thus, I calculated the average distance between sensed points as xx cm! A little noise will significantly affect the generated map.
+![](Lab6/Images/JustBarelySpinning.png)
+Figure 15. Open-loop step response of the robot with minimum motor power required to keep it spinning on a tile floor. Note the bumps: the robot drove over gaps between tiles.
 
 [//]: # (where the limiting factor is the timing budget, and the time between measurements may be zero.)
 
 To accurately spin the robot in place, I chose to use PI control (no derivative) because the robot is a first-order system and its transfer function is already stable without adding derivative. Below are some graphs that demonstrate my tuning process: raise Kₚ until the system rings, reduce Kₚ, raise Kᵢ until it overshoots too much, drop Kᵢ, and raise Kᵢ again. I used only the gyroscope to measure yaw rates. I used the linear scaling from Lab 4 to compensate for the difference between the right motor and the left.
 
-Figure 0. I had difficulty charging my NiCd batteries. As a result, the robot would not move regardless of motor power applied, which is why this data is missing.
+Figure 16. Step response of the robot using a PI (no D) controller.
 
-The minimum rotational speed I could maintain was now xx °/s using the feedback loop. This should allow much closer points.
+```Python
+# PID loop (currently PI)
+global z, e, tNow, setpoint, inte, kp, ki, kd, xyzd, levels
+while True:
+    await asyncio.sleep(0.05)
+    zLast = z
+    eLast = e
+    tLast = tNow
+    z = xyzd[2]          # current sensor value
+    e = setpoint - z    # error
+    tNow = time.clock_gettime(time.CLOCK_MONOTONIC)
+    dt = tNow - tLast
+    de = e - eLast      # derivative of error
+    inte = inte + (e*dt)    # integral term
+    if (inte > 127):
+        inte = 127          # positive windup control
+    elif (inte < -127):
+        inte = -127;        # negative windup control
+    output = kp*e + ki*inte + kd*(de/dt)
+    # write motor power
+    output = output + 128   # centered at 127/128 rather than 0
+    if output < 0:          # numbers in a bytearray are limited to [0,256]
+        output = 0
+    elif output > 255:
+        output = 255
+    output = int(output)    # must be an integer
+    #outputL = int(output/2)    # reduced power for left: drive in an arc
+    theRobot.updateMotor("left", output)  # left is reversed
+    theRobot.updateMotor("right", output) # right is forward
+    # use "levels[1]" for current motor power reading from robot;
+    # use "output" for current scaled output from this code
+    motorPower = int((levels[1]-127.5)/1.27)    # scale output to +/-100%
+    # Every loop, display desired speed, actual speed, and motor power
+    print("{},{},{}".format(setpoint,z,motorPower))
+```
 
-50°/s &times; (&pi; rad / 180°) = 0.873 rad/s = <img src="http://latex.codecogs.com/svg.latex?\dot{\theta}" border="0"/>
+The minimum rotational speed I could maintain was now xx °/s using a PI loop with parameters `kp = 0.7` and `ki = 0.1`. This should allow much closer points.
 
-<img src="http://latex.codecogs.com/svg.latex?\dot{\theta}T_S" border="0"/> = 50°/s &times; (&pi; rad / 180°) &times; 50 ms = 0.0174 rad = 1°
+250°/s &times; (&pi; rad / 180°) = 4.36 rad/s = <img src="http://latex.codecogs.com/svg.latex?\dot{\theta}" border="0"/>
 
-<img src="http://latex.codecogs.com/svg.latex?\dot{\theta}T_S" border="0"/> = 50°/s &times; (&pi; rad / 180°) &times; 50 ms &times; 0.5 m = 1.7 cm/s
+<img src="http://latex.codecogs.com/svg.latex?\dot{\theta}T_S" border="0"/> = 250°/s &times; (&pi; rad / 180°) &times; 50 ms = 0.218 rad = 12.5°
+
+<img src="http://latex.codecogs.com/svg.latex?\dot{\theta}T_S" border="0"/> = 250°/s &times; (&pi; rad / 180°) &times; 50 ms &times; 0.5 m = 10.9 cm/s
+
+<img src="http://latex.codecogs.com/svg.latex?\dot{\theta}T_S" border="0"/> = 250°/s &times; (&pi; rad / 180°) &times; 50 ms &times; 0.5 m = 10.9 cm/s
 
 
 ### Simulation
@@ -955,3 +1124,19 @@ Note that the drift was worse (though the rate of drift was about equal) with ve
 Figure 15. Ground-truth (green) and odometry (red) data from simulated robot.
 
 When I drove very fast (linear 6, angular 3), the pose estimate drifted less *per distance traveled.* But the *rate* of drift appears to vary only with time.
+
+See all my results and code [here on GitHub](https://github.com/kreismit/ECE4960/tree/master/Lab6). Also see additional things I learned and notes in the [Other Lessons Learned](https://github.com/kreismit/ECE4960/tree/master/Notes/OtherLessonsLearned.md) page. I spent a lot of this lab's time trying to relay commands and data successfully over Bluetooth, so I added a "Bluetooth" section which explains the setup, what I learned about the `asyncio` library, and so on.
+
+<h1 id="L6">Lab 6</h1>
+
+## Note: Used the same materials from Lab 6 until Lab 12.
+
+## Lab 7a: Procedure
+
+Downloaded the [lab 7 base code](https://cornell.box.com/s/hw4ak6f2jkp6q4u0rq8oes5yx4oa8dff); extracted; and ran `lab7_base_code/setup.sh` in the VM. Restarted terminal emulator; entered `~/catkin_ws/src/lab7/scripts/`; and ran `jupyter lab`. In another terminal window, ran `lab7-manager` and started *both* the simulator and the plotter.
+
+Followed the instructions in the Jupyter lab; wrote the pseudocode below to describe the Bayes filter algorithm.
+
+## Lab 7a: Results
+
+ <embed type="text/plain" src="Lab7/pseudocode" width="500" height="300"></embed>

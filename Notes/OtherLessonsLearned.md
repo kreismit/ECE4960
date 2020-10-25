@@ -1,3 +1,10 @@
+# Bluetooth Communication
+
+* Everything in `myRobotTasks()` runs **once**.
+* The only functions which "loop" by default in the Python code are `checkMessages()` and `motorLoop()`. `motorLoop()` isn't enabled unless you `await asyncio.gather(checkMessages(), myRobotTasks(), motorLoop())`.
+* Originally my approach was not to mess with `ece4960robot.py`, only with the "user-facing* code in the other Python scripts. But, as it turns out, there's a small bug in `self.updateFlag` in the `ece4960robot.py` code.
+Initially, it's only set to true when a key is pressed on the keyboard. But I wasn't trying to drive the robot with my keyboard; I was trying to send motor values. So, when I set that flag to true within the updateMotor() function, I got the expected results when I called updateMotor() and motorLoop() was running.
+
 # C Stuff I Wish I'd Known
 
 ## Pointers
@@ -70,11 +77,13 @@ You can also change other options in the Tweak Tool, including moving the window
 
 ### If you have a touchscreen...
 
-Firefox doesn't let you touch-scroll by default unless you set the environment variable `MOZ_USE_XINPUT2=1`. Not sure why it isn't enabled by default, but setting this does the trick. I set the variable by adding this line to my `~/.bashrc`: 
+Firefox doesn't let you touch-scroll by default unless you set the environment variable `MOZ_USE_XINPUT2=1`. I tried setting the variable by adding a line to my `~/.bashrc`. However, this script only runs when the terminal application is run, so unless you start Firefox from a terminal window, touch scrolling still doesn't work. Actually, I had to add this line to the file `/etc/security/pam_env.conf`:
 
-`export MOZ_USE_XINPUT2=1`.
+	MOZ_USE_XINPUT2 DEFAULT=1.
 
-In the terminal, run `gsettings set org.gnome.settings-daemon.peripherals.mouse drag-threshold 24` to keep stuff from being dragged when you touch the screen intentionally or accidentally. 
+ The reason this is not set by default is that the environment variable isn't enabled for security reasons. 🤷
+
+In the terminal, run `gsettings set org.gnome.settings-daemon.peripherals.mouse drag-threshold 24` to keep stuff from being dragged when you touch the screen intentionally or accidentally. The drag threshold, 24 pixels, is about the max it can reasonably be before intentional drags don't work.
 I added this to my `~/.bashrc` file (just `nano` or `gedit .bashrc` in the terminal) to make it automatically change the drag threshold every time I log in. 
 
 ## .bashrc
