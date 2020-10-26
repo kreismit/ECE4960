@@ -158,7 +158,7 @@ async def robotTest(loop):
                 e = setpoint - z    # error
                 tNow = time.clock_gettime(time.CLOCK_MONOTONIC)
                 dt = tNow - tLast
-                de = e - eLast      # derivative of error
+                de = e - eLast      # change in error
                 inte = inte + (e*dt)    # integral term
                 if (inte > 127):
                     inte = 127          # positive windup control

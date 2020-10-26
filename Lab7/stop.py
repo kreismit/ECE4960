@@ -7,30 +7,7 @@ from ece4960robot import Robot
 from settings import Settings
 from struct import unpack, calcsize
 
-# Initialize stuff for PID
-xyzd = (0,0,0,0)   # sensor reading tuple
-rpyd = (0,0,0,0)  # calculated angle tuple
-levels = (0,0)  # motor output tuple
-setpoint = 300  # also known as reference, "r"
-kp = 0.75       # proportional gain
-ki = 0.1        # integral gain
-kd = 0          # derivative gain
-yaw = 0         # current angular position
-z = 0           # current angular velocity
-e = setpoint    # current error for PID loop
-inte = 0        # integral of error
-tNow = time.clock_gettime(time.CLOCK_MONOTONIC)  # current time coord (sec)
-# CLOCK_MONOTONIC is perfect for our purposes; only on Linux!
-
-# and other variables
-right = 0   # address of right drive motor
-left = 1    # address of left drive motor
-rFwd = 1    # forward direction for right motor
-rRev = 0    # backward direction for right motor
-lFwd = 0    # forward direction for left motor
-lRev = 1    # backward direction for left motor
-offset = 4  # left side gets (offset) more power than right side
-calib = 1.08 # left side gets (calib) times more power than right
+global rpy, xyz     # globals for R/P/Y angles and X/Y/Z rot. velocities
 
 async def getRobot():
     devices = await discover(device=Settings["adapter"], timeout=5)
@@ -52,7 +29,7 @@ async def robotTest(loop):
     # bytes(type + length + data)
     # This struct shouldn't be more than 99 bytes long.
     def simpleHandler(handle, value):
-        global time,xyzd,rpyd,levels  # This is apparently needed.
+        global time  # This is apparently needed.
         if (value == "enq".encode()):
             pass
         else:
@@ -72,18 +49,13 @@ async def robotTest(loop):
 
             # Unpack an array of 3 angles, which are little-endian floats.
             if (code == Commands.GIVE_ANGLES.value):
-                rpyd = unpack("<ffff", data)
-                #print(rpyd)
+                rpy = unpack("<fff", data)
+                print(rpy)
 
             # Unpack an array of 3 raw readings: little-endian ints.
             if (code == Commands.GIVE_RAW.value):
-                xyzd = unpack("<ffff", data)    # float == f
-                #print(xyzd)
-
-            # Unpack the motor power levels
-            if (code == Commands.GET_MOTORS.value):
-                levels = unpack("<BB", data) # uint8_t == B
-                # print(levels) # for debugging
+                xyz = unpack("<fff", data)
+                print(xyz)
 
             # Example of command-response.
             if (code == Commands.PONG.value):
@@ -96,8 +68,8 @@ async def robotTest(loop):
             # 4-byte integer as quickly as possible, both little-endian.
             if (code == Commands.BYTESTREAM_TX.value):
                 print(f"Received {length} bytes of data")
-                print(unpack("<fff",data)) # float == f
-                #print(unpack("<QQQ",data)) # unsigned long (long) == Q
+                print(unpack("<fff",data)) # for 3 32-bit integers
+                #print(unpack("<QQQ",data)) # for 3 64-bit integers
                 #print(data)	# show the raw, for debugging
 
     async def checkMessages():
@@ -136,66 +108,24 @@ async def robotTest(loop):
         # await client.write_gatt_char(Descriptors["RX_CHAR_UUID"].value, msg)
 
         async def myRobotTasks():
-            # pass
-            
             '''
             Sending motor values: 0 is full speed reverse and 255 is full speed ahead.
             128, halfway in the middle, is stop. The reason for this is that Python is
             sending a single-byte value, but the motor take a byte for the power level
             and a bit for the direction.
             '''
-            
-            await theRobot.sendCommand(Commands.REQ_ANGLES) # update sensors
-            # PID loop
-            global yaw, z, e, tNow, setpoint, inte, xyzd, levels
-            while True:
-                await asyncio.sleep(0.05)
-                yawLast = yaw
-                zLast = z
-                eLast = e
-                tLast = tNow
-                #z = xyzd[2]
-                # back out current sensor value from successive angle measurements
-                yaw = rpyd[2]
-                tNow = time.clock_gettime(time.CLOCK_MONOTONIC)
-                dt = tNow - tLast
-                z = (yaw-yawLast)/dt    # avg. angular rate over last 20ms
-                e = setpoint - z    # error
-                de = e - eLast      # change in error
-                inte = inte + (e*dt)    # integral term
-                if (inte > 127):
-                    inte = 127          # positive windup control
-                elif (inte < -127):
-                    inte = -127;        # negative windup control
-                output = kp*e + ki*inte + kd*(de/dt)
-                # write motor power
-                #await theRobot.setMotors(right,rFwd,output)
-                #await theRobot.setMotors(left,lRev,calib*output+offset)
-                #await theRobot.sendCommand(Commands.SET_MOTORS, length=3, data=bytearray([right, rFwd, int(output)]))
-                #await theRobot.sendCommand(Commands.SET_MOTORS, length=3, data=bytearray([left, lRev, int(calib*output+offset)]))
-                output = output + 128   # centered at 127/128 rather than 0
-                if output < 0:          # numbers in a bytearray are limited to [0,256]
-                    output = 0
-                elif output > 255:
-                    output = 255
-                output = int(output)    # must be an integer
-                #outputL = int(output/2)    # reduced power for left: drive in an arc
-                theRobot.updateMotor("left", output)  # left is reversed
-                theRobot.updateMotor("right", output) # right is forward
-                # use "levels[1]" for current motor power reading from robot;
-                # use "output" for current scaled output from this code
-                motorPower = int((levels[1]-127.5)/1.27)    # scale output to +/-100%
-                # For PID tuning: print setpoint, actual, output
-                #print("{},{},{}".format(setpoint,z,motorPower))
-                # For mapping: print angle, distance
-                print("{},{}".format(rpyd[2],rpyd[3]))
+            theRobot.updateMotor("left",128)           # stop
+            theRobot.updateMotor("right",128)
 
         async def motorLoop():
-            while True:
+            t0 = time.clock_gettime(time.CLOCK_MONOTONIC)
+            tNow = time.clock_gettime(time.CLOCK_MONOTONIC)
+            while (tNow-t0) < 1:    # stop after about 1 s
+                tNow = time.clock_gettime(time.CLOCK_MONOTONIC)
                 await theRobot.loopTask()
                 await asyncio.sleep(0.1)
 
-        await asyncio.gather(checkMessages(), myRobotTasks(), motorLoop())
+        await asyncio.gather(myRobotTasks(), motorLoop())
         # async for msg in checkMessages():
         #    print(f"BTDebug: {msg}")
 

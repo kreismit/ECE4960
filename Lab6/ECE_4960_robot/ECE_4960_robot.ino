@@ -110,6 +110,8 @@ bool rampUp = false, rampDown = false;  // is the turning speed ramping up? ramp
 uint16_t rampCount = 0;     // unsigned integer which goes from 0 to 255 and then back
 uint8_t despacito = 0;      // "slowly" with a reference. Count to 10 before incrementing motor power
 
+bool TOFStarted = 0;
+
 void setup()
 {
   Serial.begin(115200);
@@ -133,7 +135,7 @@ void setup()
   // but make max 64k or trouble
   
   Wire.begin();
-  Wire.setClock(400000);
+  //Wire.setClock(400000);
 
   /* Set up ToF sensor */
   if (TOF.begin() != 0) //Begin returns 0 on a good init
@@ -146,7 +148,8 @@ void setup()
   TOF.setTimingBudgetInMs(60);       // ideal for SR
   //TOF.setDistanceModeLong();           // default
   //TOF.setTimingBudgetInMs(180);        // ideal for LR
-  //TOF.setIntermeasurementPeriod(0);  // default
+  TOF.setIntermeasurementPeriod(0);  // default
+  TOF.setOffset(37);
   
   bool initialized = false;
   while( !initialized ){
@@ -371,13 +374,17 @@ void setup()
   //interrupts(); // Enable interrupt operation. Equivalent to am_hal_rtc_int_enable().
   //am_hal_wdt_start();
   //am_hal_wdt_int_enable(); - freezes boot
-  
+
 } /*** END setup FCN ***/
 
 void loop()
 {
   //Serial.println("Loop...."); //KHE Loops constantly....no delays
 
+  if(!TOFStarted){
+    TOF.startRanging(); // initiate measurement the first time
+    TOFStarted = true;
+  }
   if (l_Rcvd > 1) //Check if we have a new message from amdtps_main.c through BLE_example_funcs.cpp
   {
 
@@ -596,7 +603,7 @@ void loop()
     #endif
   }
 
-  trigger_timers();
+  //trigger_timers();
 
   // Disable interrupts.
 

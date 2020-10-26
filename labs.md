@@ -1099,7 +1099,7 @@ while True:
     print("{},{},{}".format(setpoint,z,motorPower))
 ```
 
-The minimum rotational speed I could maintain was now xx °/s using a PI loop with parameters `kp = 0.7` and `ki = 0.1`. This should allow much closer points.
+The minimum rotational speed I could maintain was now xx °/s using a PI loop with parameters `kp = 0.4`, `ki = 4`, and `kd = 0.1`. This should allow much closer points.
 
 250°/s &times; (&pi; rad / 180°) = 4.36 rad/s = <img src="http://latex.codecogs.com/svg.latex?\dot{\theta}" border="0"/>
 
@@ -1107,7 +1107,7 @@ The minimum rotational speed I could maintain was now xx °/s using a PI loop wi
 
 <img src="http://latex.codecogs.com/svg.latex?\dot{\theta}T_S" border="0"/> = 250°/s &times; (&pi; rad / 180°) &times; 50 ms &times; 0.5 m = 10.9 cm/s
 
-<img src="http://latex.codecogs.com/svg.latex?\dot{\theta}T_S" border="0"/> = 250°/s &times; (&pi; rad / 180°) &times; 50 ms &times; 0.5 m = 10.9 cm/s
+<img src="http://latex.codecogs.com/svg.latex?\dot{\theta}T_S" border="0"/> = 100°/s &times; (&pi; rad / 180°) &times; 50 ms &times; 0.5 m = 4.4 cm/s
 
 
 ### Simulation
@@ -1139,15 +1139,162 @@ Followed the instructions in the Jupyter lab; wrote the pseudocode below to desc
 
 ## Lab 7a: Results
 
-<object data="Lab7/pseudocode" type="text/plain"
-width="500" style="height: 300px">
-<a href="Lab7/pseudocode">Embed isn't working</a>
-</object>
+```
+# In world coordinates
+def compute_control(cur_pose, prev_pose):
+    """ Given the current and previous odometry poses, this function extracts
+    the control information based on the odometry motion model.
+
+    Args:
+        cur_pose  ([Pose]): Current Pose
+        prev_pose ([Pose]): Previous Pose 
+
+    Returns:
+        [delta_rot_1]: Rotation 1  (degrees)
+        [delta_trans]: Translation (meters)
+        [delta_rot_2]: Rotation 2  (degrees)
+    Pseudocode (well, this code probably compiles):
+        delta_y = cur_pose[1] - prev_pose[1]
+        delta_x = cur_pose[0] - prev_pose[0]
+        delta_rot_1 = atan2(delta_y, delta_x)
+        delta_trans = sqrt(delta_y^2 + delta_y^2)
+        delta_rot_2 = cur_pose[2] - (prev_pose[2] + delta_rot_1)
+    """
+
+    return delta_rot_1, delta_trans, delta_rot_2
+
+# In world coordinates
+def odom_motion_model(cur_pose, prev_pose, u):
+    """ Odometry Motion Model
+
+    Args:
+        cur_pose  ([Pose]): Current Pose
+        prev_pose ([Pose]): Previous Pose
+        u = (rot1, trans, rot2) (float, float, float): A tuple with control data
+            in the format (rot1, trans, rot2) with units (degrees, meters, degrees)
+
+    Returns:
+        prob [ndarray 20x20x18]: Probability p(x'|x, u)
+        
+    Pseudocode:
+        prevX, prevY, prevTh = prev_pose
+        for x,y,theta in gridPoints: # use fromMap() to get these coords.
+            # Figure out what each movement would have been to get here
+            dx = x-prevX; dy = y-prevY; dth = theta-prevTh;
+            dtrans = sqrt(dx^2+dy^2)
+            drot1 = atan2(dy,dx)
+            drot2 = dth - rot1i
+            pR = gaussian(trans, dtrans, odom_trans_sigma)
+            pTh1 = gaussian(rot1, drot1, odom_rot_sigma)
+            pTh2 = gaussian(rot2, drot2, odom_rot_sigma)
+            pXYT = pR*pTh1*pTh2 # probability we got all three right
+            prob[indices for x, y, theta] = pXYT # use toMap
+    """
+
+    return prob
+
+def prediction_step(cur_odom, prev_odom, loc.bel):
+    """ Prediction step of the Bayes Filter.
+    Update the probabilities in loc.bel_bar based on loc.bel 
+    from the previous time step and the odometry motion model.
+
+    Args:
+        cur_odom  ([Pose]): Current Pose
+        prev_odom ([Pose]): Previous Pose
+        loc.bel [ndarray 20x20x18]: Previous location probability density
+        
+    Returns:
+        loc.bel_bar [ndarray 20x20x18]: Updated location probability density
+        
+    Pseudocode:
+        loc.bel_bar = odom_motion_model(cur_odom, prev_odom)*loc.bel
+    """
+    
+    return loc.bel_bar
+
+def sensor_model(obs, cur_pose):
+    """ This is the equivalent of p(z|x).
+    Args:
+        obs [ndarray]: A 1D array consisting of the measurements made in rotation loop
+        cur_pose  ([Pose]): Current Pose
+
+    Returns:
+        probArray [ndarray]: Returns a 1D array of size 18 (=loc.OBS_PER_CELL) with the likelihood of each individual measurements
+    Pseudocode:
+        (x,y,theta) = cur_pose
+        for i in range(18):
+            d = getViews(x,y,theta)
+            probArray[i] = gaussian(obs[i], d, sensor_sigma)
+    """
+
+    return prob_array
+
+# In configuration space
+def update_step(loc.bel_bar, obs):
+    """ Update step of the Bayes Filter.
+    Update the probabilities in loc.bel based on loc.bel_bar and the sensor model.
+    Args:
+        loc.bel_bar: belief after prediction step
+        obs [ndarray]: A 1D array consisting of the measurements made in rotation loop
+    Returns:
+        loc.bel [ndarray 20x20x18]: belief after update step
+    Pseudocode:
+        loc.bel = sensorModel(obs)*loc.bel_bar
+        eta = 1/sum(loc.bel)    # normalization constant
+        loc.bel = loc.bel*eta
+    """
+
+"""
+# Pseudocode for navigation with Bayes filter
+while True:
+    next_pose = compute_motion_planning(loc.bel)
+    u = compute_control(next_pose, prev_pose)
+    execute_control(u)
+    cur_pose = get_odometry() # odometry data is available once the robot has moved
+    loc.bel_bar = prediction_step(cur_pose, prev_pose, loc.bel)
+    obs = update sensor readings
+    pzwhatever = sensor_model(obs, cur_pose)
+    loc.bel = update_step(loc.bel_bar, obs)
+    prev_pose = cur_pose
+"""
+```
+
+This pseudocode
+
+* Ignores degrees and radians (Python functions use rads, everything else uses degrees)
+* Ignores library names
+* Uses fake function names to represent things I don't have worked out yet
+* "May throw some exceptions/errors, which is expected"
+
+I have no pictures or recordings for what I did since it's writing pseudocode. See the function documentation in the Jupyter notebook [here on GitHub](https://github.com/kreismit/ECE4960/tree/master/Lab7).
+
 
 ## Lab 7b: Procedure
 
-Chose to map out the kitchen. Measured and drew a scale drawing of the kitchen; chose three positions from which to generate the map.
+Chose a room to map. Measured and drew a scale drawing of the room; chose three positions from which to generate the map.
 
-TODO:
-Generated a map using the coordinate offsets of those three positions. Plotted it in the plotter.
+Manually rotated the robot around and used `matplotlib.pyplot.polar()` to ensure reasonable results.
 
+[TODO] Generated a map using the coordinate offsets of those three positions. Plotted it in the plotter.
+
+## Lab 7b: Results
+
+I chose a kitchen since it had a tile floor. Conveniently, the tiles were exactly 6" by 6" so I was able to precisely (within 1cm) position the robot using the tiles. Note that this is the same surface I used to tune the PID controller and to do most of the other testing. Other surfaces in my apartment are carpeted and the robot does not turn so well on carpet.
+
+The kitchen was 6m x 3m in its largest dimensions so I added boxes to tell the robot when to stop. Below is a sketch of the kitchen layout. Stools with shiny metal legs were removed.
+
+![kitchen sketch](Lab7/Images/Sketch.jpg)
+Figure 1. Layout of kitchen with no added obstacles.
+
+I added obstacles to one end so that the room appears to be 5m x 3m; this avoids the worry of running out of memory.
+
+![kitchen sketch 2](Lab7/Images/SketchExtraWall.jpg)
+Figure 2. Layout of kitchen with added "wall" of boxes, boards, etc.
+
+The plot (from the center of the area on the right) looked the way I expected. Note the curvature of corners due to the wide beam, and also the error due to a floor which isn't totally flat.
+Significantly, the plot is rotated 90° to the left. I may need to turn my plots around due to drift in the sensor.
+
+![polar plot in lower-left-hand-corner](Lab7/Images/PolarTestPlot.png)
+Figure 3. Map data acquired by manually turning the robot in place in the lower left-hand corner of the kitchen sketch shown.
+
+For an unknown reason, I am no longer able to see any data from the ToF sensor with my code.
