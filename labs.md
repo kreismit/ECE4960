@@ -1127,7 +1127,7 @@ When I drove very fast (linear 6, angular 3), the pose estimate drifted less *pe
 
 See all my results and code [here on GitHub](https://github.com/kreismit/ECE4960/tree/master/Lab6). Also see additional things I learned and notes in the [Other Lessons Learned](https://github.com/kreismit/ECE4960/tree/master/Notes/OtherLessonsLearned.md) page. I spent a lot of this lab's time trying to relay commands and data successfully over Bluetooth, so I added a "Bluetooth" section which explains the setup, what I learned about the `asyncio` library, and so on.
 
-<h1 id="L6">Lab 6</h1>
+<h1 id="L7">Lab 7</h1>
 
 ## Note: Used the same materials from Lab 6 until Lab 12.
 
@@ -1141,7 +1141,7 @@ Followed the instructions in the Jupyter lab; wrote the pseudocode below to desc
 
 <object data="Lab7/pseudocode" type="text/plain"
 width="500" style="height: 300px">
-<a href="/path_to_text_file/text.txt">Embed isn't working</a>
+<a href="Lab7/pseudocode">Embed isn't working</a>
 </object>
 
 ## Lab 7b: Procedure

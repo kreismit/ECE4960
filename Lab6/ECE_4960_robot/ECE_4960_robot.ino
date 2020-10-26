@@ -138,7 +138,7 @@ void setup()
   /* Set up ToF sensor */
   if (TOF.begin() != 0) //Begin returns 0 on a good init
   {
-    Serial.println("Sensor failed to begin. Please check wiring. Freezing...");
+    Serial.println("ToF failed to begin. Please check wiring. Freezing...");
     while (1)
       ;
   }
@@ -158,7 +158,7 @@ void setup()
     
     IMU.begin( Wire, AD0_VAL );  // use I2C
     #ifdef SERIAL_DEBUG
-        Serial.printf("Initialization of the sensor returned: ");
+        Serial.printf("Initialization of the IMU returned: ");
         Serial.println( IMU.statusString() );
     #endif
     
