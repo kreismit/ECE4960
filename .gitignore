@@ -2,5 +2,7 @@
 lab*_base_code/
 # Python cache
 */__pycache__/
+# LibreOffice locks
+*/.~lock*
 # and backup files
 **/*.old
