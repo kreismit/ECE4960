@@ -1061,7 +1061,7 @@ Figure 15. Open-loop step response of the robot with minimum motor power require
 
 To accurately spin the robot in place, I chose to use PI control (no derivative) because the robot is a first-order system and its transfer function is already stable without adding derivative. Below are some graphs that demonstrate my tuning process: raise Kₚ until the system rings, reduce Kₚ, raise Kᵢ until it overshoots too much, drop Kᵢ, and raise Kᵢ again. I used only the gyroscope to measure yaw rates. The below PID loop, run online using Bluetooth, could not react fast enough to the light robot's sudden changes in speed. The graph is the best I could do at an intermediate speed of 300°/s.
 
-
+![](Lab6/Images/NotGreat.png)
 Figure 16. Step response of the robot using a PI controller running on the computer in Python.
 
 ```python
@@ -1305,7 +1305,6 @@ while True:
     cur_pose = get_odometry() # odometry data is available once the robot has moved
     loc.bel_bar = prediction_step(cur_pose, prev_pose, loc.bel)
     obs = update sensor readings
-    pzwhatever = sensor_model(obs, cur_pose)
     loc.bel = update_step(loc.bel_bar, obs)
     prev_pose = cur_pose
 """
@@ -1349,4 +1348,4 @@ Significantly, the plot is rotated 90° to the left. I may need to turn my plots
 ![polar plot in lower-left-hand-corner](Lab7/Images/PolarTestPlot.png)
 Figure 3. Map data acquired by manually turning the robot in place in the lower left-hand corner of the kitchen sketch shown.
 
-For an unknown reason, I am no longer able to see any data from the ToF sensor with my code.
+Map data coming soon!
