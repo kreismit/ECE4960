@@ -721,7 +721,7 @@ Figure 8. Rear of robot, showing RedBoard Artemis (top, front), IMU (top, back),
 
 #### Obstacle Avoidance
 
-Unfortunately, I spent a long time taking data and didn't get obstacle avoidance working by 8 in the morning. But I did eventually get it. Below, I made the mistake of using a binary on-off speed control with too long of a minimum range. 
+Unfortunately, I spent a long time taking data and didn't get obstacle avoidance working in time. Below, I made the mistake of using a binary on-off speed control with too long of a minimum range. 
 
 <video width="600" controls><source src="Lab5/Videos/disco.mp4" type="video/mp4"></video>
 
@@ -868,7 +868,7 @@ The accelerometer is quite accurate (though noisy.) Using SerialPlot, I found th
 The gyroscope angles were much less noisy, since the angle is acquired by integrating the rate, the angle looks like it's been through a low-pass filter. 
 Precise calibration is difficult, since the gyroscope's angular rate measurements change both in short and in long time spans. So, some drift in the readings is inevitable, but this calibration code worked well.
 
-```C++
+```c++
   //// Calibrate gyroscope angles
   //Serial.println("Calibrating gyro...");
   int tCal = calTime*1000000;       // 1 sec = 1000000 microseconds
@@ -926,7 +926,7 @@ I got the best results thus far from a complementary filter with α=0.3 and a co
 ![Complementary Filter with α=0.3](Lab6/Images/RPYCompFilter0.3.png)
 Figure 10. Roll, pitch, and yaw tests; roll and pitch have a complementary filter with α=0.3 in favor of the gyroscope.
 
-```C++
+```c++
   if( myICM.dataReady() ){
     myICM.getAGMT();                // The values are only updated when you call 'getAGMT'
     tLast = tNow;                   // the new has grown old
@@ -970,7 +970,7 @@ I was able to calibrate away all the constant fields and achieve sensible angle 
 ![Magnetometer Angle Readings Screenshot](Lab6/Images/Screenshot_2020-10-17_12-05-26.png)
 Figure 13. Magnetometer angle readings: decently accurate until the motors turn.
 
-```C++
+```c++
   //// Calibrate gyroscope and magnetometer readings
   // For magnetometer calibration to work, it must begin pointing north.
   //Serial.println("Point me north!")
@@ -1052,18 +1052,19 @@ Below is my data from a smooth ramp that incremented/decremented the motor power
 ![Ramp data](Lab6/Images/RampResponse.png)
 Figure 14. Open-loop ramp response. Note the deadband in the beginning. The gyro maxed out at 500°/s. The two wheels started spinning at nearly the same time. The bumps in the motor power graph are due to lost Bluetooth communication at a distance of 8ft. "Adjusted" power is scaled to &pm;127.
 
-On a smooth table, I found that the minimum rotational speed I could maintain was about 250°/s! This minimum speed would indicate that the points detected by the ToF sensor will be far apart. I found that the *optimal* sampling time for the ToF is 50-60 ms; per the datasheet, the *minimum* sampling time is 20 ms. Thus, I calculated the average distance between sensed points as 11 cm! A little noise will significantly affect the generated map.
+On a smooth tile floor, I found that the minimum rotational speed I could maintain was about 250°/s! This minimum speed would indicate that the points detected by the ToF sensor will be far apart. I found that the *optimal* sampling time for the ToF is 50-60 ms; per the datasheet, the *minimum* sampling time is 20 ms. Thus, I calculated the average distance between sensed points as 11 cm! A little noise will significantly affect the generated map.
 
 ![](Lab6/Images/JustBarelySpinning.png)
 Figure 15. Open-loop step response of the robot with minimum motor power required to keep it spinning on a tile floor. Note the bumps: the robot drove over gaps between tiles.
 
 [//]: # (where the limiting factor is the timing budget, and the time between measurements may be zero.)
 
-To accurately spin the robot in place, I chose to use PI control (no derivative) because the robot is a first-order system and its transfer function is already stable without adding derivative. Below are some graphs that demonstrate my tuning process: raise Kₚ until the system rings, reduce Kₚ, raise Kᵢ until it overshoots too much, drop Kᵢ, and raise Kᵢ again. I used only the gyroscope to measure yaw rates. I used the linear scaling from Lab 4 to compensate for the difference between the right motor and the left.
+To accurately spin the robot in place, I chose to use PI control (no derivative) because the robot is a first-order system and its transfer function is already stable without adding derivative. Below are some graphs that demonstrate my tuning process: raise Kₚ until the system rings, reduce Kₚ, raise Kᵢ until it overshoots too much, drop Kᵢ, and raise Kᵢ again. I used only the gyroscope to measure yaw rates. The below PID loop, run online using Bluetooth, could not react fast enough to the light robot's sudden changes in speed. The graph is the best I could do at an intermediate speed of 300°/s.
 
-Figure 16. Step response of the robot using a PI (no D) controller.
 
-```Python
+Figure 16. Step response of the robot using a PI controller running on the computer in Python.
+
+```python
 # PID loop (currently PI)
 global z, e, tNow, setpoint, inte, kp, ki, kd, xyzd, levels
 while True:
@@ -1099,7 +1100,17 @@ while True:
     print("{},{},{}".format(setpoint,z,motorPower))
 ```
 
-The minimum rotational speed I could maintain was now xx °/s using a PI loop with parameters `kp = 0.4`, `ki = 4`, and `kd = 0.1`. This should allow much closer points.
+The PID controller worked much better when I loaded the PID control algorithm onto the robot instead, since there was no time delay due to latency. Below is a successful tuning graph:
+
+![](Lab6/Images/GoodTuning.png)
+
+Figure 17. Step response of a PI controller running on the robot. Note I had to increase the range of the gyro to sense more than 500°/s.
+
+![](Lab6/Images/50degpersec.png)
+
+Figure 18. Moving much slower than was possible with open-loop control. Note that only one wheel was turning (even though I sent equal power to both.)
+
+The minimum rotational speed I could maintain was now 50°/s using a PI loop with parameters `kp = 0.75` and `ki = 1.5` with a complementary lag filter using `alpha = 0.5`. This should allow much closer points, even with a 60ms timing budget, as shown below.
 
 250°/s &times; (&pi; rad / 180°) = 4.36 rad/s = <img src="http://latex.codecogs.com/svg.latex?\dot{\theta}" border="0"/>
 
@@ -1107,8 +1118,49 @@ The minimum rotational speed I could maintain was now xx °/s using a PI loop wi
 
 <img src="http://latex.codecogs.com/svg.latex?\dot{\theta}T_S" border="0"/> = 250°/s &times; (&pi; rad / 180°) &times; 50 ms &times; 0.5 m = 10.9 cm/s
 
-<img src="http://latex.codecogs.com/svg.latex?\dot{\theta}T_S" border="0"/> = 100°/s &times; (&pi; rad / 180°) &times; 50 ms &times; 0.5 m = 4.4 cm/s
+<img src="http://latex.codecogs.com/svg.latex?\dot{\theta}T_S" border="0"/> = 50°/s &times; (&pi; rad / 180°) &times; 50 ms &times; 0.5 m = 2.2 cm/s
 
+<img src="http://latex.codecogs.com/svg.latex?\dot{\theta}T_S" border="0"/> = 50°/s &times; (&pi; rad / 180°) &times; 60 ms &times; 0.5 m = 2.6 cm/s
+
+![](Lab6/Images/CalcTrig.jpg)
+
+Below is the PID controller written in Arduino:
+
+```c++
+if(pid){ // As long as we're running the controller,
+    eLast = e;  // Update error (but don't update time - this is already done in the gyro section)
+    //tLast = t;
+    //t = micros();
+    //dt = (t - tLast)*0.000001;
+    e = alphaE*(setpoint-omZ)+(1-alphaE)*eLast; // lag filter on error
+    inte = inte + e*dt;                         // integral term
+    de = e - eLast;                             // numerator of deriv. term
+    if (inte > 255)                             // anti-windup control for integral
+      inte = 255;
+    else if (inte < -255)
+      inte = -255;
+    output = kp*e+ki*inte+kd*(de/dt);           // calculate output
+    #ifdef SERIAL_PID
+      Serial.printf("P = %3.1f, I = %3.1f, D = %3.1f\n",kp*e, ki*inte, kd*(de/dt));
+    #endif
+    if (setpoint > 0){ // spinning clockwise (with IMU on bottom - CCW with IMU on top)
+      if (output > 255)                         // limit output to 1-byte range
+        output = 255;
+      else if (output < 0)
+        output = 0;
+      scmd.setDrive(left, lRev, output);
+      scmd.setDrive(right, rFwd, output);
+    }
+    else{ // spinning counterclockwise or stopping
+      if (output > 0)                       // limit output to 1-byte range
+        output = 0;
+      else if (output < -255)
+        output = -255;
+      scmd.setDrive(left, lFwd, -output);   // and send the NEGATIVE of the output
+      scmd.setDrive(right, rRev, -output);      
+    }
+}
+```
 
 ### Simulation
 
@@ -1123,9 +1175,9 @@ Note that the drift was worse (though the rate of drift was about equal) with ve
 ![Screenshot of Plotter Data](Lab6/Images/Screenshot_2020-10-18_21-27-07.png)
 Figure 15. Ground-truth (green) and odometry (red) data from simulated robot.
 
-When I drove very fast (linear 6, angular 3), the pose estimate drifted less *per distance traveled.* But the *rate* of drift appears to vary only with time.
+When I drove very fast (linear 6, angular 3), the pose estimate drifted less *per distance traveled.* But the *rate* of drift appears constant with time.
 
-See all my results and code [here on GitHub](https://github.com/kreismit/ECE4960/tree/master/Lab6). Also see additional things I learned and notes in the [Other Lessons Learned](https://github.com/kreismit/ECE4960/tree/master/Notes/OtherLessonsLearned.md) page. I spent a lot of this lab's time trying to relay commands and data successfully over Bluetooth, so I added a "Bluetooth" section which explains the setup, what I learned about the `asyncio` library, and so on.
+See all my results and code [here on GitHub](https://github.com/kreismit/ECE4960/tree/master/Lab6). The `Data.ods` spreadsheet contains many commented PID tuning graphs. Also see additional things I learned and notes in the [Other Lessons Learned](https://github.com/kreismit/ECE4960/tree/master/Notes/OtherLessonsLearned.md) page. I spent a lot of this lab's time trying to relay commands and data successfully over Bluetooth, so I added a "Bluetooth" section which explains the setup, what I learned about the `asyncio` library, and so on.
 
 <h1 id="L7">Lab 7</h1>
 

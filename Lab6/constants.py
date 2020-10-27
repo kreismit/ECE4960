@@ -28,12 +28,14 @@ class Commands(Enum):
     GIVE_ANGLES = 7
     REQ_RAW = 8
     GIVE_RAW = 9
-    PING = 10
-    PONG = 11
-    START_BYTESTREAM_TX = 12
-    STOP_BYTESTREAM_TX = 13
-    BYTESTREAM_TX = 14
-    BYTESTREAM_RX = 15
+    START_SPIN = 10
+    STOP_SPIN = 11
+    PING = 12
+    PONG = 13
+    START_BYTESTREAM_TX = 14
+    STOP_BYTESTREAM_TX = 15
+    BYTESTREAM_TX = 16
+    BYTESTREAM_RX = 17
 
 
 def getCommandName(name):
