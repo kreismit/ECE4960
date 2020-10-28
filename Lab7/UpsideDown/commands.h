@@ -14,6 +14,8 @@ typedef enum
   GIVE_ANGLES,
   REQ_RAW,
   GIVE_RAW,
+  START_SPIN,
+  STOP_SPIN,
   PING,
   PONG,
   START_BYTESTREAM_TX,

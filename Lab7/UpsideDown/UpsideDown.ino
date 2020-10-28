@@ -14,6 +14,7 @@
 #include "SCMD.h"
 #include "SCMD_config.h" //Contains #defines for common SCMD register names and values
 // IR ToF sensor
+#include <Wire.h>
 #include <ComponentObject.h>
 #include <RangeSensor.h>
 #include <SparkFun_VL53L1X.h>
@@ -32,7 +33,9 @@ SFEVL53L1X TOF;  // Create a VL53L1X object. Used to get data from the ToF.
 
 // maximum length of reply / data message
 #define MAXREPLY 100
-#define SERIAL_DEBUG    // Uncomment this to enable serial debugging.
+#define SERIAL_DEBUG    // Uncomment this to enable general serial debugging.
+//#define SERIAL_TOF      // Uncomment this to print ToF values to serial.
+//#define SERIAL_PID      // Uncomment this to print PID values to serial.
 #define SERIAL_PORT Serial  // formerly for SparkFun library purposes
 
 
@@ -55,7 +58,7 @@ float mXCal = 0, mYCal = 0, mZCal = 0; // Calibration offsets for mX, mY, mZ
 float mTotal;               // total in-plane magnetometer reading
 int mCount = 0;             // count the number of magnetometer readings for averaging
 float alpha = 0.3;          // Complementary filter parameter
-int tNow, tLast;            // current and previous times (microseconds)
+uint32_t tNow, tLast;       // current and previous times (microseconds)
 float dt;                   // change in time (sec)
 int tWait = 10;             // Milliseconds to wait between each data update
 float calTime = 5;          // how many seconds to calibrate
@@ -106,9 +109,19 @@ byte lFwd = 0;
 byte lRev = 1;
 int offset = 4;             // left side gets (offset) more power than right side
 float calib = 1.08;         // left side gets (calib) times more power than right
-bool rampUp = false, rampDown = false;  // is the turning speed ramping up? ramping down?
-uint16_t rampCount = 0;     // unsigned integer which goes from 0 to 255 and then back
-uint8_t despacito = 0;      // "slowly" with a reference. Count to 10 before incrementing motor power
+// For PID controller
+bool pid = false;           // are we using the PID controller to run the motors?
+int32_t setpoint = 0;       // setpoint for controller
+float kp, ki, kd;           // P, I, and D gains for controller; set by master via Bluetooth
+float e = 0;                // current error value
+float eLast;                // previous error value
+float inte = 0;             // integral of error
+float de = 0;               // change in error (differential)
+float alphaE = 0.5;         // lag filter parameter
+float output;               // output of PID to send to motors
+
+
+bool TOFStarted = 0;
 
 void setup()
 {
@@ -138,7 +151,7 @@ void setup()
   /* Set up ToF sensor */
   if (TOF.begin() != 0) //Begin returns 0 on a good init
   {
-    Serial.println("Sensor failed to begin. Please check wiring. Freezing...");
+    Serial.println("ToF failed to begin. Please check wiring. Freezing...");
     while (1)
       ;
   }
@@ -146,7 +159,8 @@ void setup()
   TOF.setTimingBudgetInMs(60);       // ideal for SR
   //TOF.setDistanceModeLong();           // default
   //TOF.setTimingBudgetInMs(180);        // ideal for LR
-  //TOF.setIntermeasurementPeriod(0);  // default
+  TOF.setIntermeasurementPeriod(15);  // default is 100
+  TOF.setOffset(37);
   
   bool initialized = false;
   while( !initialized ){
@@ -158,7 +172,7 @@ void setup()
     
     IMU.begin( Wire, AD0_VAL );  // use I2C
     #ifdef SERIAL_DEBUG
-        Serial.printf("Initialization of the sensor returned: ");
+        Serial.printf("Initialization of the IMU returned: ");
         Serial.println( IMU.statusString() );
     #endif
     
@@ -182,12 +196,12 @@ void setup()
                           // gpm8
                           // gpm16
                           
-  myFSS.g = dps500;       // (ICM_20948_GYRO_CONFIG_1_FS_SEL_e)
+  myFSS.g = dps1000;      // (ICM_20948_GYRO_CONFIG_1_FS_SEL_e)
                           // dps250
                           // dps500
                           // dps1000
                           // dps2000
-  // Chose 500 dps (about 2 rot/s = 120 rpm) based on testing.
+  // Chose 1000 dps (about 4 rot/s = 240 rpm) based on testing / trial & error.
                           
   IMU.setFullScale( (ICM_20948_Internal_Acc | ICM_20948_Internal_Gyr), myFSS );
   
@@ -230,10 +244,10 @@ void setup()
   mYCal = mYCal / mCount;
   mZCal = mZCal / mCount;
   
-//  #ifdef SERIAL_DEBUG
-//    Serial.printf("Calibration offsets: ")
-//    Serial.print("X %6.4f, Y %6.4f, Z %6.4f degrees per second\n",omXCal,omYCal,omZCal);
-//  #endif
+  #ifdef SERIAL_DEBUG
+    Serial.printf("Calibration offsets: ");
+    Serial.printf("X %6.4f, Y %6.4f, Z %6.4f degrees per second\n",omXCal,omYCal,omZCal);
+  #endif
   
   //// Initialize motor driver so we can drive!
   
@@ -371,13 +385,17 @@ void setup()
   //interrupts(); // Enable interrupt operation. Equivalent to am_hal_rtc_int_enable().
   //am_hal_wdt_start();
   //am_hal_wdt_int_enable(); - freezes boot
-  
+
 } /*** END setup FCN ***/
 
 void loop()
 {
   //Serial.println("Loop...."); //KHE Loops constantly....no delays
 
+  if(!TOFStarted){
+    TOF.startRanging(); // initiate measurement the first time
+    TOFStarted = true;
+  }
   if (l_Rcvd > 1) //Check if we have a new message from amdtps_main.c through BLE_example_funcs.cpp
   {
 
@@ -408,19 +426,7 @@ void loop()
         for(byte i=0; i<2; i++){ // run this twice
           address = i;                  // left is 0; right is 1
           power[i] = cmd->data[i];
-//          // Power value is between 0 and 255, including sign and direction. Decode it.
-//          if(power>127){    // integer greater than or equal to 128
-//            direction = 1;  // positive power values go forward
-//            power = (int) (power-128)*2;  // note: if power = 128, the output will be 0
-//            Serial.printf("Setting motor %d to spin CW at %d\n",address, power);
-//          } else {  // negative value
-//            direction = 0;  // negative power values go backward
-//            power = (int) (127-power)*2;  // note: if power = 127, the output will also be 0
-//            Serial.printf("Setting motor %d to spin CCW at %d\n",address, power);
-//          }
-//          scmd.setDrive( address, direction, power);
           scmd.writeRegister(SCMD_MA_DRIVE+i,power[i]);  // the driver accepts a value 0-255
-          // so this is much simpler than parsing and then using another function
         }
         //break;  // flow right into GET_MOTORS so the computer's records update automatically
       }
@@ -430,20 +436,25 @@ void loop()
         res_cmd->command_type = GET_MOTORS;
         res_cmd->length = 4;  // 2 uint8_t's for type and length, and two more for data
         for(byte i=0; i<2; i++){
-          //address = i;
-          //power[i] = scmd.readRegister(SCMD_MA_DRIVE+i);
-          ((uint8_t*)res_cmd->data)[i] = power[i]; // already stored in memory
+          address = i;
+          power[i] = scmd.readRegister(SCMD_MA_DRIVE+i);
+          //((uint8_t*)res_cmd->data)[i] = power[i]; // already stored in memory
         }
         amdtpsSendData((uint8_t *)res_cmd, res_cmd->length);
         res_cmd->command_type = typeOld;
         break;
       }
-//      case RAMP:
-//      {
-//        Serial.println("Starting ramped turn.");
-//        rampUp = true;
-//        break;
-//      }
+      case START_SPIN:
+      {
+        Serial.println("Starting PID-controlled turn.");
+        pid = true;
+        setpoint = ((uint32_t*)cmd->data)[0];
+        kp = ((float*)cmd->data)[1];
+        ki = ((float*)cmd->data)[2];
+        kd = ((float*)cmd->data)[3];
+        Serial.printf("Kp = %3.2f, Ki = %3.2f, Kd = %3.2f\n",kp,ki,kd);
+        break;
+      }
       case SER_RX:
       {
         Serial.println("Got a serial message");
@@ -626,7 +637,7 @@ void loop()
   {
     data32[3] = TOF.getDistance();  //Get the result of the measurement from the sensor
     // and put it in the data array at the end
-    #ifdef SERIAL_DEBUG
+    #ifdef SERIAL_TOF
       Serial.print("ToF reading: ");
       Serial.printf("%4.1f mm\n", data32[3]);
     #endif
@@ -679,38 +690,43 @@ void loop()
     Serial.println("Waiting for data from IMU");
     delay(500);
   }
-  // Handle ramp command
-  if(rampUp){ // As long as we're ramping up,
-    if(rampCount < 255 && despacito==10){  // and we haven't reached the max,
-      //scmd.setDrive(left, lRev, rampCount*calib+offset);  // can overflow
-      scmd.setDrive(left, lRev, rampCount);
-      scmd.setDrive(right, rFwd, rampCount);
-      rampCount++;    // set the motor powers and keep ramping.
-      despacito = 0;  // and reset the "slowly" value.
+  // Handle PID command
+  if(pid){ // As long as we're running the controller,
+    eLast = e;  // Update error (but don't update time - this is already done in the gyro section)
+    //tLast = t;
+    //t = micros();
+    //dt = (t - tLast)*0.000001;
+    e = alphaE*(setpoint-omZ)+(1-alphaE)*eLast; // lag filter on error
+    inte = inte + e*dt;                         // integral term
+    de = e - eLast;                             // numerator of deriv. term
+    if (inte > 255)                             // anti-windup control for integral
+      inte = 255;
+    else if (inte < -255)
+      inte = -255;
+    output = kp*e+ki*inte+kd*(de/dt);           // calculate output
+    #ifdef SERIAL_PID
+      Serial.printf("P = %3.1f, I = %3.1f, D = %3.1f\n",kp*e, ki*inte, kd*(de/dt));
+    #endif
+    if (setpoint > 0){ // spinning clockwise (with IMU on bottom - CCW with IMU on top)
+      if (output > 255)                         // limit output to 1-byte range
+        output = 255;
+      else if (output < 0)
+        output = 0;
+      scmd.setDrive(left, lFwd, output);
+      scmd.setDrive(right, rRev, output);
     }
-    else if(despacito==10){
-      rampUp = false;   // We're done ramping up
-      rampDown = true;  // and we're ready to ramp down now.
-      despacito = 0;    // and start counting to 10 again.
+    else{ // spinning counterclockwise or stopping
+      if (output > 0)                       // limit output to 1-byte range
+        output = 0;
+      else if (output < -255)
+        output = -255;
+      scmd.setDrive(left, lRev, -output);   // and send the NEGATIVE of the output
+      scmd.setDrive(right, rFwd, -output);      
     }
-    else  // despacito<10
-      despacito++;
   }
-  else if(rampDown){ // As long as we're ramping down,
-    if(rampCount > 0 && despacito==10){ // and we haven't reached the min,
-      //scmd.setDrive(left, lRev, rampCount*calib+offset);
-      scmd.setDrive(left, lRev, rampCount);
-      scmd.setDrive(right, rFwd, rampCount);
-      rampCount--;    // set the motor powers and keep ramping.
-      despacito = 0;  // reset the count.
-    }
-    else if(despacito==10){
-      rampDown = false; // We're done ramping!
-      rampUp = false;   // just to make sure it doesn't start over
-      despacito = 0;    // and start counting to 10 again.
-    }
-    else
-      despacito++;
+  else{ // just stop the motors if controller isn't running
+    scmd.setDrive(left,lFwd,0);
+    scmd.setDrive(right,rFwd,0);
   }
   delay(tWait); // regardless of what else runs, delay a bit before the next loop iteration
 } //END LOOP

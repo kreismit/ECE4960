@@ -1324,13 +1324,17 @@ I have no pictures or recordings for what I did since it's writing pseudocode. S
 
 Chose a room to map. Measured and drew a scale drawing of the room; chose three positions from which to generate the map.
 
-Manually rotated the robot around and used `matplotlib.pyplot.polar()` to ensure reasonable results.
+Manually (and later, automatically) rotated the robot around and used `matplotlib.pyplot.polar()` to ensure reasonable results.
 
-[TODO] Generated a map using the coordinate offsets of those three positions. Plotted it in the plotter.
+Derived the coordinate transformation matrix based on the assumption that the robot turns perfectly about its left wheels.
+
+Took three scans and saved them as `.csv` files.
+
+Wrote Python code to concatenate them all together and output a bigger `.csv` which contained all the data. Scatterplotted the data. Manually chose starting and ending points for obstacles and saved two lists as `.csv` files: `StartPoints.csv` and `EndPoints.csv`. Plotted the generated map in the Plotter tool.
 
 ## Lab 7b: Results
 
-I chose a kitchen since it had a tile floor. Conveniently, the tiles were exactly 6" by 6" so I was able to precisely (within 1cm) position the robot using the tiles. Note that this is the same surface I used to tune the PID controller and to do most of the other testing. Other surfaces in my apartment are carpeted and the robot does not turn so well on carpet.
+I chose a kitchen since it had a tile floor rather than carpet. Conveniently, the tiles were exactly 6" by 6" so I was able to precisely (within 1cm) position the robot using the tiles. Note that this is the same surface I used to tune the PID controller and to do most of the other testing.
 
 The kitchen was 6m x 3m in its largest dimensions so I added boxes to tell the robot when to stop. Below is a sketch of the kitchen layout. Stools with shiny metal legs were removed.
 
@@ -1345,7 +1349,94 @@ Figure 2. Layout of kitchen with added "wall" of boxes, boards, etc.
 The plot (from the center of the area on the right) looked the way I expected. Note the curvature of corners due to the wide beam, and also the error due to a floor which isn't totally flat.
 Significantly, the plot is rotated 90° to the left. I may need to turn my plots around due to drift in the sensor.
 
-![polar plot in lower-left-hand-corner](Lab7/Images/PolarTestPlot.png)
+![polar plot in lower-left-hand-corner](Lab7/Images/RobotsFirstScan.png)
 Figure 3. Map data acquired by manually turning the robot in place in the lower left-hand corner of the kitchen sketch shown.
 
-Map data coming soon!
+Note that the sensor was not calibrated properly, so the map is rotated by about 30°. Also note that the robot did *not* turn in place (it swing-turned about one side), so the readings will differ by the width of the robot. Also note that the kitchen is open at the jagged part, but the sensor appears to be seeing bumps in the floor instead. I flipped the robot upside-down so that the ToF was elevated farther off the ground. Of course, all the PID tuning was now backwards, so I flipped the directions of the output to compensate for this.
+
+```c++
+      // setDrive(motor, direction, powerLevel)
+      scmd.setDrive(left, lFwd, output);    // formerly lRev
+      scmd.setDrive(right, rRev, output);   // formerly rFwd
+```
+
+I took three 360° scans, at locations 3.5 &times; 3.5 tiles; 3.5 &times; 14.5 tiles; and 3.5 &times; 24.5 tiles. Thus, the starting coordinates were . All scans started in the center of a tile, facing in the positive *x* direction. 
+Below is the code I used to process the three scans and generate a single scatterplot. The robot did not spin about its center axis; I incorporated the resulting radial and *y* offsets into the code.
+
+```python
+#!/usr/bin/python3
+import numpy as np
+import matplotlib.pyplot as pylot
+
+sq2m = 6/39.37      # tile squares to meters conversion
+deg2rad = np.pi/180 # degrees to radians conversion
+
+for i in range(3):
+    filename = "Rotation" + str(i+1) + ".csv"
+    polar = np.genfromtxt(filename,delimiter=',')
+    lenCart = len(polar[:,1])   # length of array to be generated
+    thetas = polar[0:-1,0]      # first column
+    rs = polar[0:-1,1]          # second column
+    cart = np.empty([lenCart,3]) # starting array for Cartesian coordinates
+    if i==0:
+        xr = 3.5*sq2m           # x offset, m
+        yr = 3*sq2m           # y offset, m (-0.5 for turn radius)
+    elif i==1:
+        xr = 3.5*sq2m           # x offset, m
+        yr = 14*sq2m           # y offset, m (-0.5 for turn radius)
+    elif i==2:
+        xr = 3.5*sq2m           # x offset, m
+        yr = 24*sq2m           # y offset, m (-0.5 for turn radius)
+    xy = np.array([(xr,yr)]).reshape(2,1)   # 2x1 column vector
+    for j in range(lenCart-1):
+        th = -thetas[j]*deg2rad  # angles are in degrees; backwards
+        d = np.zeros([3,1])       # 3x1 vector for ToF dist. measurement
+        d[0] = rs[j]/1000       # distances are in mm (first element of d)
+        d[1] = 0.5              # y offset (distance from center point of arc)
+        d[2] = 1                # and the last entry should be 1
+        R = np.array([(np.cos(th), -np.sin(th)),(np.sin(th), np.cos(th))])
+        T = np.block([[R, xy],[0,0,1]])
+        Td= np.matmul(T,d)       # and the matrix math pays off.
+        cart[j,:] = Td.reshape(3)
+    if i==0:
+        cart1 = cart
+    elif i==1:
+        cart2 = cart
+    elif i==2:
+        cart3 = cart
+cartesianCoords = np.concatenate((cart1,cart2,cart3),axis=0) # looong x,y array
+xs = cartesianCoords[:,0]
+ys = cartesianCoords[:,1]
+fig = pylot.figure()
+ax = fig.add_axes([0,0,1,1])
+pylot.plot(xs,ys,'g.')
+ax.set_xlim(-1,5)
+ax.set_ylim(-1,5)
+pylot.show()
+output = np.vstack([xs,ys]).T
+np.savetxt("Points.csv",output,delimiter=",")
+```
+
+The result (after some improvement from the original) looked like a snowman.
+
+![entire plot stitched together](Lab7/Images/ScanWithDrift.png)
+Figure 4. Drift really makes a difference in these slow scans.
+
+Frustrated though I was that the gyro drift was so bad, I was able to manually generate a Plotter-compatible map. Here is the output from the VM Plotter:
+
+![map generated with lots of help](Lab7/Images/UpdatedMap.png)
+Figure 5. Map plot generated using the robot's data with heavy reliance on the real map.
+
+To achieve this output, I imported CSV files again:
+
+```python
+# Start points for each line segment describing the map
+start_points = np.genfromtxt("StartPoints.csv", delimiter=",")
+
+# End points for each line segment describing the map
+end_points = np.genfromtxt("EndPoints.csv", delimiter=",")
+```
+
+I should note that the number of ToF readings generated from each cycle is much more than 18, but isn't a constant number. What I intend to do for the next lab is to take the median of all the readings from 10° to 30° and call that the 20° reading; take the median of readings from 30° to 50° and call that the 40° reading; etc. I want to do that because it filters out occasional outliers and is likely to give the actual distance measured at 20° rotation; if something went wrong with that point or the Bluetooth packet was dropped, the median is the next best thing. Mean would not be satisfactory because it would round out corners (such as the wall obstacle and the legs of the kitchen counter) too much. Seeing these features is important for localization.
+
+Note that I collected data and wrote code beyond what is mentioned here; see [the GitHub Lab7 folder](https://github.com/kreismit/ECE4960/tree/master/Lab7) for the slightly modified PID code, Python code to print *r*-*θ* pairs, and more.

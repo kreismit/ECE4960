@@ -111,7 +111,6 @@ while True:
     cur_pose = get_odometry() # odometry data is available once the robot has moved
     loc.bel_bar = prediction_step(cur_pose, prev_pose, loc.bel)
     obs = update sensor readings
-    pzwhatever = sensor_model(obs, cur_pose)
     loc.bel = update_step(loc.bel_bar, obs)
     prev_pose = cur_pose
 """
