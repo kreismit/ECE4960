@@ -100,6 +100,14 @@ Type `unzip` before a zipped filename in the terminal to extract it. You can als
 
 Type `clear` to clear (reset, clean up) the terminal.
 
+I like to see what my machine is doing when it starts up. Just the splash screen isn't enough, especially if something goes wrong and you wonder why. I uninstalled `plymouth`, the Ubuntu splash screen program. Later, I edited `/etc/default/grub`, the Grub settings file, to remove `quiet` from the default command line:
+
+    GRUB_CMDLINE_LINUX_DEFAULT="splash"
+
+This is just a settings file. To reload the settings, I ran `sudo update-grub`.
+
+Then, I saw the kernel output when the machine booted.
+
 # Github Pages Site
 
 ## Links

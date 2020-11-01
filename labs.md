@@ -1440,3 +1440,98 @@ end_points = np.genfromtxt("EndPoints.csv", delimiter=",")
 I should note that the number of ToF readings generated from each cycle is much more than 18, but isn't a constant number. What I intend to do for the next lab is to take the median of all the readings from 10° to 30° and call that the 20° reading; take the median of readings from 30° to 50° and call that the 40° reading; etc. I want to do that because it filters out occasional outliers and is likely to give the actual distance measured at 20° rotation; if something went wrong with that point or the Bluetooth packet was dropped, the median is the next best thing. Mean would not be satisfactory because it would round out corners (such as the wall obstacle and the legs of the kitchen counter) too much. Seeing these features is important for localization.
 
 Note that I collected data and wrote code beyond what is mentioned here; see [the GitHub Lab7 folder](https://github.com/kreismit/ECE4960/tree/master/Lab7) for the slightly modified PID code, Python code to print *r*-*θ* pairs, and more.
+
+<h1 id="L8">Lab 8</h1>
+
+## Used the same materials as Labs 6 and 7.
+
+## Procedure
+
+Downloaded the [lab eight base code](https://cornell.box.com/s/5qz2ka8xi7mim6ic037rnqs5g8jksgp1); extracted; ran `setup.sh` from the folder; closed and reopened terminal window; and ran `jupyter lab` from `~/catkin_ws/src/lab8/scripts`.
+
+Using pseudocode from [Lab 7](#L7), wrote the following Bayes Filter code in Python 3:
+
+<object data="Lab8/bayesFilter.py" type="text/plain"
+width="500" style="height: 300px">
+<a href="Lab8/bayesFilter.py">No Support?</a>
+</object>
+
+(Optional) Added code to the overall Bayes filter loop to time each step. 
+
+```python
+tic = time.clock_gettime(time.CLOCK_MONOTONIC)
+loc.bel_bar = prediction_step(current_odom, prev_odom, loc.bel)
+loc.print_prediction_stats(plot_data=True)
+toc = time.clock_gettime(time.CLOCK_MONOTONIC)
+print("Prediction step time: {} s".format(toc-tic))
+```
+
+## Results and Lessons Learned
+
+I didn't fully understand the syntax when I started; when I ran the cells of the Jupyter notebook in the wrong order, I received an error that `loc` (the BaseLocalization object) had not been initialized. Since I was used to Matlab coding, I believed this was a shared variable issue and changed the names of the function parameters to `bel` and `bel_bar` so as not to cause a conflict. However, the function output was not passed to a variable in the main code, so this didn't work and I received strange results. Of course, when I assigned the variables their values, the filter gave more reasonable results.
+
+Before: `prediction_step(current_odom, prev_odom, loc.bel)`; 
+after: `loc.bel_bar = prediction_step(current_odom, prev_odom, loc.bel)`.
+
+Before: `update_step(loc.bel_bar, loc.obs_range_data)`; 
+after: `loc.bel = update_step(loc.bel_bar, loc.obs_range_data)`.
+
+Even after an hour of accumulating error in the odometry readings (my third debugging session), the Bayes filter handled it well.
+
+![First successful run](Lab8/Images/FirstSuccessfulRun.png)
+Figure 1. First run of the Bayes filter algorithm in which it gave expected readings.
+
+Restarting the simulator and resetting everything gave better results.
+
+![Second successful run](Lab8/Images/LessAccumulatedError.png)
+Figure 2. Another run of the Bayes filter algorithm after a full reset.
+
+I found that my sensor model was quite efficient since I took the TA's advice; however, my motion model was so construed that it recomputed the same numbers 7,200 (=18 &times; 20 &times; 20) times each iteration, so it took 10-12 seconds to run each iteration of the filter code.
+
+    ----------------- 1 -----------------
+
+    ---------- PREDICTION STATS -----------
+    GT index            :  (13, 7, 8)
+    Prior Bel index     : (9,8,6) with prob = 0.8336
+    POS ERROR      : (0.772, -0.145, 44.843)
+    ---------- PREDICTION STATS -----------
+    Prediction step time: 10.677906151999196 s
+     | Executing Observation Loop at: 30 deg/s
+
+    ---------- UPDATE STATS -----------
+    GT index      :  (13, 7, 8)
+    Bel index     : (13,8,8) with prob = 1.0000
+    Bel_bar prob at index = 0.0000
+
+    GT     : (0.672, -0.445, -2.157)
+    Belief   : (0.700, -0.300, -10.000)
+    POS ERROR : (-0.028, -0.145, 7.843)
+    ---------- UPDATE STATS -----------
+    Update step time: 0.028990982999857806 s
+    -------------------------------------
+
+I am unsure why my belief probability on the center is so close to 1. Sometimes it is not so close to 1:
+
+    ----------------- 6 -----------------
+
+    ---------- PREDICTION STATS -----------
+    GT index            :  (16, 13, 15)
+    Prior Bel index     : (17,13,14) with prob = 0.9786
+    POS ERROR      : (-0.272, -0.008, 12.601)
+    ---------- PREDICTION STATS -----------
+    Prediction step time: 11.915527201999794 s
+     | Executing Observation Loop at: 30 deg/s
+
+    ---------- UPDATE STATS -----------
+    GT index      :  (16, 13, 15)
+    Bel index     : (15,14,15) with prob = 0.9999
+    Bel_bar prob at index = 0.0038
+
+    GT     : (1.228, 0.692, 125.601)
+    Belief   : (1.100, 0.900, 130.000)
+    POS ERROR : (0.128, -0.208, -4.399)
+    ---------- UPDATE STATS -----------
+    Update step time: 0.03112747799968929 s
+    -------------------------------------
+
+I think I may be calculating the probability incorrectly. This may be why it is so much faster than the prediction step.
