@@ -1655,12 +1655,12 @@ After: `loc.bel = update_step(loc.bel_bar, loc.obs_range_data)`
 Even after an hour of accumulating error in the odometry readings (my third debugging session), the Bayes filter handled it well.
 
 ![First successful run](Lab8/Images/FirstSuccessfulRun.png)
-Figure 1. First run of the Bayes filter algorithm in which it gave expected readings.
+Figure 1. First run of the Bayes filter algorithm in which it gave expected readings. Belief is yellow; odometry readings are blue; and ground truth is green.
 
 Restarting the simulator and resetting everything gave better results.
 
 ![Another successful run](Lab8/Images/LessAccumulatedError.png)
-Figure 2. Another run of the Bayes filter algorithm after a full reset.
+Figure 2. Another run of the Bayes filter algorithm after a full reset. Belief is yellow; odometry readings are blue; and ground truth is green.
 
 For debugging purposes, I changed the `robot_interface.py` code to print more decimal places in probabilities:
 
@@ -1720,6 +1720,14 @@ Sometimes the belief probability is not so close to 1:
     ---------- UPDATE STATS -----------
     Update step time: 0.03112747799968929 s
     -------------------------------------
+
+### Reasons for Inaccuracy
+
+The odometry data graph is usually upside-down and contorted. Since the Bayes filter begins with the prediction based on odometry, even a perfect sensor model won't necessarily tell the robot where it is. For instance, if the robot sees a wall in front and orthogonal, and a wall behind at 45°, there are several places it could be; the motion model must give reasonable results to achieve an accurate location.
+
+Another point is that the Bayes filter's resolution is limited to that of the grid. As shown above, the grid has a precision of 0.2 meter, so the Bayes filter algorithm is expected to give errors of up to 0.2 meter. Much of the error here may be attributed to this resolution, as the real trajectory often passes between two successive believed positions.
+
+### Performance
 
 I double-checked that I am running the update step correctly. It is much shorter, more elegant code than the prediction step is. Since it's shorter, and it uses Numpy array to do nearly everything, it is much faster. How much?
 
