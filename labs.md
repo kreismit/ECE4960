@@ -1723,9 +1723,8 @@ Sometimes the belief probability is not so close to 1:
 
 I double-checked that I am running the update step correctly. It is much shorter, more elegant code than the prediction step is. Since it's shorter, and it uses Numpy array to do nearly everything, it is much faster. How much?
 
------------------------------
-|:Step :|:	Prediction Time     :|
------------------------------
+|Step|	Prediction Time     |
+|:-:|:----------------------|
 |0	|   10.8624686610001	|
 |1	|   11.210937152	    |
 |2	|   10.0682631970012	|
@@ -1757,4 +1756,4 @@ I double-checked that I am running the update step correctly. It is much shorter
 The entire loop took 660 seconds (11 minutes) to run, so nearly half of the trajectory time was spent calculating the motion model.
 The prediction step time ranged from 10 to 13 seconds, but the update step time ranged from 0.022 to 0.045 seconds.
 
-See the rest of my code and screenshots [here on Github](https://github.com/kreismit/ECE4960/Lab8/).
+See the rest of my code and screenshots [here on Github](https://github.com/kreismit/ECE4960/tree/master/Lab8).
