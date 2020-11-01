@@ -6,5 +6,3 @@ lab*_base_code/
 */.~lock*
 # and backup files
 **/*.old
-# and this file
-.gitignore

@@ -1449,12 +1449,186 @@ Note that I collected data and wrote code beyond what is mentioned here; see [th
 
 Downloaded the [lab eight base code](https://cornell.box.com/s/5qz2ka8xi7mim6ic037rnqs5g8jksgp1); extracted; ran `setup.sh` from the folder; closed and reopened terminal window; and ran `jupyter lab` from `~/catkin_ws/src/lab8/scripts`.
 
-Using pseudocode from [Lab 7](#L7), wrote the following Bayes Filter code in Python 3:
+Using pseudocode from [Lab 7](#L7), wrote the following Bayes Filter code (with debugging print statements removed) in Python 3:
 
-<object data="Lab8/bayesFilter.py" type="text/plain"
-width="500" style="height: 300px">
-<a href="Lab8/bayesFilter.py">No Support?</a>
-</object>
+```python
+# Import useful Numpy functions
+from numpy import arctan2, hypot, pi, deg2rad, rad2deg, arange
+# and alias several functions to prevent errors later
+odom_rot_sigma = loc.odom_rot_sigma
+odom_trans_sigma = loc.odom_trans_sigma
+sensor_sigma = loc.sensor_sigma
+gaussian = loc.gaussian
+normalize_angle = mapper.normalize_angle
+to_map = mapper.to_map
+toMap = to_map
+from_map = mapper.from_map
+fromMap = from_map
+
+# In world coordinates
+def compute_control(cur_pose, prev_pose):
+    """ Given the current and previous odometry poses, this function extracts
+    the control information based on the odometry motion model.
+
+    Args:
+        cur_pose  ([Pose]): Current Pose
+        prev_pose ([Pose]): Previous Pose 
+
+    Returns:
+        [delta_rot_1]: Rotation 1  (degrees)
+        [delta_trans]: Translation (meters)
+        [delta_rot_2]: Rotation 2  (degrees)
+    Pseudocode (well, this code probably compiles):
+        delta_y = cur_pose[1] - prev_pose[1]
+        delta_x = cur_pose[0] - prev_pose[0]
+        delta_rot_1 = atan2(delta_y, delta_x)
+        delta_trans = sqrt(delta_y^2 + delta_y^2)
+        delta_rot_2 = cur_pose[2] - (prev_pose[2] + delta_rot_1)
+    """
+    dy = cur_pose[1] - prev_pose[1] # pre-compute these since they'll be
+    dx = cur_pose[0] - prev_pose[0] # used twice
+    # normalize the change in angle (could be >180°)
+    dTheta = normalize_angle(cur_pose[2] - prev_pose[2])
+    delta_rot_1 = rad2deg(arctan2(dy, dx))
+    delta_trans = hypot(dx, dy) # get magnitude of dx, dy
+    delta_rot_2 = dTheta - delta_rot_1
+    return delta_rot_1, delta_trans, delta_rot_2
+
+# In world coordinates
+def odom_motion_model(cur_pose, bel, u):
+    """ Odometry Motion Model
+
+    Args:
+        cur_pose  ([Pose]): Current Pose (x,y,th) in meters
+        bel ([ndarray 20x20x18]): Belief about position from last iteration
+        u = (rot1, trans, rot2) (float, float, float): A tuple with control data
+            in the format (rot1, trans, rot2) with units (degrees, meters, degrees)
+
+    Returns:
+        prob [scalar float]: Probability sum over x_{t-1} (p(x'|x, u)) at the cur_pose.
+        
+    Pseudocode (MODIFIED):
+        x, y, th = prev_pose
+        for prevX,prevY,prevTh in gridPoints: # use fromMap() to get these coords.
+            # Figure out what each movement would have been to get here
+            dx = x-prevX; dy = y-prevY; dth = theta-prevTh;
+            dtrans = sqrt(dx^2+dy^2)
+            drot1 = atan2(dy,dx)
+            drot2 = dth - rot1i
+            pR = gaussian(trans, dtrans, odom_trans_sigma)
+            pTh1 = gaussian(rot1, drot1, odom_rot_sigma)
+            pTh2 = gaussian(rot2, drot2, odom_rot_sigma)
+            pXYT = pR*pTh1*pTh2 # probability we got all three right
+            prob[x,y,th] = prob[x,y,th] + pXYT*bel[prevX,prevY,prevTh]
+    """
+    # Determine what each movement would have been to get here: 20x20x18 array
+    # We don't know where we are or where we were, but we have
+    # * A guess for where we are now (cur_pose).
+    # * A distribution for where we were. Sum over that in this function.
+    drot1 = np.empty([20,20,1])   # first rotation to travel to point x,y
+    dtrans = np.empty([20,20,1])  # translation to travel to x,y after rotating
+    drot2 = np.empty([20,20,18])  # second rotation to achieve angle theta
+    (x,y,th) = mapper.to_map(*cur_pose) # actually the indices for x,y,th
+    # Use vectorized code to calculate prevX & prevY fast (prevTh is a dummy for now)
+    (prevX,prevY,prevTh) = mapper.from_map(arange(0,20),arange(0,20),1)
+    dx = cur_pose[0]-prevX # change in x position (m) - array size 20
+    dy = cur_pose[1]-prevY # change in y position (m) - array size 20
+    # ^ Just do this once. th has to be recalculated many times because
+    # from_map() can't handle multiple values of theta at once.
+    for i in range(20):
+        dtrans[i,:,0] = hypot(dx[i],dy)   # do all of y at once; loop through x
+        drot1[i,:,0] = rad2deg(arctan2(dy,dx[i]))   # both 20x20 arrays
+    for i in range(18): # loop over all angles and overwrite th
+        prevTh = mapper.from_map(1,1,i)[2]  # don't care about 0 and 1
+        # Normalize the change in angle (could be >180°)
+        dth = normalize_angle(cur_pose[2] - prevTh)
+        drot2[:,:,i] = dth - drot1[:,:,0]  # build the entire array!
+    # Probability of being in this pose given the control action taken:
+    # use Law of Total Probability and sum over all possible starting points.
+    # This is the entire RHS of the pseudocode for the prediction step.
+    prob = sum(sum(sum(
+              gaussian(u[0], drot1, odom_rot_sigma)
+            * gaussian(u[1], dtrans, odom_trans_sigma)
+            * gaussian(u[2], drot2, odom_rot_sigma) 
+            * bel )))
+    return prob
+
+def prediction_step(cur_odom, prev_odom, bel):
+    """ Prediction step of the Bayes Filter.
+    Update the probabilities in loc.bel_bar based on loc.bel (bel)
+    from the previous time step and the odometry motion model.
+
+    Args:
+        cur_odom  ([Pose]): Current pose, estimated from odometry
+        prev_odom ([Pose]): Previous pose, estimated from odometry
+        loc.bel [ndarray 20x20x18]: Previous location probability density
+        
+    Returns:
+        loc.bel_bar [ndarray 20x20x18]: Updated location probability density.
+        This will be the prior belief for the update step.
+        
+    Pseudocode (FIXED):
+        for x, y, theta in configuration space:
+            loc.bel_bar[x,y,theta] = odom_motion_model((x,y,th),bel,u)
+            # Plugs in all possible current values (t).
+            # odom_motion_model() takes care of
+            # summing over all possible previous values (t-1).
+    """
+    u = compute_control(cur_odom,prev_odom) # What control action did we take?
+    bel_bar = np.zeros([20,20,18]) # Initialize prior belief with correct dims
+    for k in range(18):     # loop over all possible current poses,
+        for j in range(20): # in configuration space
+            for i in range(20):
+                pose = mapper.from_map(i,j,k) # from config space to world
+                # odom_motion_model sums probability of getting here from
+                # all possible previous poses
+                bel_bar[i,j,k] = odom_motion_model(pose,bel,u)
+                # so bel_bar is the probability of being at indices i,j,k
+    return bel_bar
+
+def sensor_model(obs):
+    """ This is the equivalent of p(z|x). Checks all possible poses x_t.
+    Args:
+        obs [ndarray]: A 1D array consisting of the measurements made in rotation loop
+                            1D array of size 18 (=loc.OBS_PER_CELL)
+
+    Returns:
+        probArray [ndarray]: Returns a 20x20x18 array corresponding to
+                             p(z_t|x_t) for all values of x_t.
+    Pseudocode:
+        (x,y,theta) = cur_pose
+        for i in range(18):
+            d = getViews(x,y,theta)
+            probArray[i] = gaussian(obs[i], d, sensor_sigma)
+    """
+    probArray = gaussian(obs[0], mapper.obs_views[:,:,:,0],sensor_sigma)
+    for i in range(1,18): # Probability of getting ALL the sensor readings
+                        # p(z1 & z2 & ...) = p(z1)p(z2)...
+        probArray = probArray*gaussian(obs[i], mapper.obs_views[:,:,:,i],sensor_sigma)
+        # this is elementwise multiplication
+    probArray = probArray / sum(sum(sum(probArray)))  # normalized probability
+    # need to sum over all three indices to get total
+    return probArray
+
+# In configuration space
+def update_step(bel_bar, obs):
+    """ Update step of the Bayes Filter.
+    Update the probabilities in loc.bel based on loc.bel_bar and the sensor model.
+    Args:
+        loc.bel_bar [ndarray 20x20x18]: belief after prediction step
+        obs [ndarray]: A 1D array consisting of the measurements made in rotation loop
+    Returns:
+        loc.bel [ndarray 20x20x18]: belief after update step
+    Pseudocode:
+        loc.bel = sensorModel(obs)*loc.bel_bar
+        eta = 1/sum(loc.bel)    # normalization constant
+        loc.bel = loc.bel*eta
+    """
+    bel = sensor_model(obs)*bel_bar
+    bel = bel/sum(sum(sum(bel))) # normalized
+    # need to sum over all three indices to get total
+    return bel
+```
 
 (Optional) Added code to the overall Bayes filter loop to time each step. 
 
@@ -1470,11 +1644,13 @@ print("Prediction step time: {} s".format(toc-tic))
 
 I didn't fully understand the syntax when I started; when I ran the cells of the Jupyter notebook in the wrong order, I received an error that `loc` (the BaseLocalization object) had not been initialized. Since I was used to Matlab coding, I believed this was a shared variable issue and changed the names of the function parameters to `bel` and `bel_bar` so as not to cause a conflict. However, the function output was not passed to a variable in the main code, so this didn't work and I received strange results. Of course, when I assigned the variables their values, the filter gave more reasonable results.
 
-Before: `prediction_step(current_odom, prev_odom, loc.bel)`; 
-after: `loc.bel_bar = prediction_step(current_odom, prev_odom, loc.bel)`.
+Before: `prediction_step(current_odom, prev_odom, loc.bel)`
 
-Before: `update_step(loc.bel_bar, loc.obs_range_data)`; 
-after: `loc.bel = update_step(loc.bel_bar, loc.obs_range_data)`.
+After: `loc.bel_bar = prediction_step(current_odom, prev_odom, loc.bel)`
+
+Before: `update_step(loc.bel_bar, loc.obs_range_data)` 
+
+After: `loc.bel = update_step(loc.bel_bar, loc.obs_range_data)`
 
 Even after an hour of accumulating error in the odometry readings (my third debugging session), the Bayes filter handled it well.
 
@@ -1483,8 +1659,19 @@ Figure 1. First run of the Bayes filter algorithm in which it gave expected read
 
 Restarting the simulator and resetting everything gave better results.
 
-![Second successful run](Lab8/Images/LessAccumulatedError.png)
+![Another successful run](Lab8/Images/LessAccumulatedError.png)
 Figure 2. Another run of the Bayes filter algorithm after a full reset.
+
+For debugging purposes, I changed the `robot_interface.py` code to print more decimal places in probabilities:
+
+```python
+print("Prior Bel index     : ({},{},{}) with prob = {:.4f}".format(
+              *argmax_bel_bar[0], argmax_bel_bar[1]))
+# other code
+print("Bel index     : ({},{},{}) with prob = {:.4f}".format(
+              *argmax_bel[0], argmax_bel[1]))
+print("Bel_bar prob at index = {:.4f}".format(self.bel_bar[argmax_bel[0]]))
+```
 
 I found that my sensor model was quite efficient since I took the TA's advice; however, my motion model was so construed that it recomputed the same numbers 7,200 (=18 &times; 20 &times; 20) times each iteration, so it took 10-12 seconds to run each iteration of the filter code.
 
@@ -1510,7 +1697,7 @@ I found that my sensor model was quite efficient since I took the TA's advice; h
     Update step time: 0.028990982999857806 s
     -------------------------------------
 
-I am unsure why my belief probability on the center is so close to 1. Sometimes it is not so close to 1:
+Sometimes the belief probability is not so close to 1:
 
     ----------------- 6 -----------------
 
@@ -1534,4 +1721,40 @@ I am unsure why my belief probability on the center is so close to 1. Sometimes 
     Update step time: 0.03112747799968929 s
     -------------------------------------
 
-I think I may be calculating the probability incorrectly. This may be why it is so much faster than the prediction step.
+I double-checked that I am running the update step correctly. It is much shorter, more elegant code than the prediction step is. Since it's shorter, and it uses Numpy array to do nearly everything, it is much faster. How much?
+
+-----------------------------
+|:Step :|:	Prediction Time     :|
+-----------------------------
+|0	|   10.8624686610001	|
+|1	|   11.210937152	    |
+|2	|   10.0682631970012	|
+|3	|   10.1311731939986	|
+|4	|   10.1318369469991	|
+|5	|   9.99874743999862	|
+|6	|   10.0988965329998	|
+|7	|   12.8323976009997	|
+|8	|   10.7474872099992	|
+|9	|   10.9461809029999	|
+|10	|   10.7700454719998	|
+|11	|   10.7374321020016	|
+|12	|   12.2810243210006	|
+|13	|   11.8426394750004	|
+|14	|   10.1277149460002	|
+|15	|   12.6775384369994	|
+|16	|   10.7251422659992	|
+|17	|   12.0187401500007	|
+|18	|   12.8803950340007	|
+|19	|   10.4697853159996	|
+|20	|   10.470596485	    |
+|21	|   10.4692385599992	|
+|22	|   10.4697699669996	|
+|23	|   10.4038207280009	|
+|24	|   10.2991401439995	|
+|25	|   10.3891734570007	|
+|Total|	284.060585697998	|
+
+The entire loop took 660 seconds (11 minutes) to run, so nearly half of the trajectory time was spent calculating the motion model.
+The prediction step time ranged from 10 to 13 seconds, but the update step time ranged from 0.022 to 0.045 seconds.
+
+See the rest of my code and screenshots [here on Github](https://github.com/kreismit/ECE4960/Lab8/).
