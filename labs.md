@@ -1723,9 +1723,9 @@ Sometimes the belief probability is not so close to 1:
 
 ### Reasons for Inaccuracy
 
-The odometry data graph is usually upside-down and contorted. Since the Bayes filter begins with the prediction based on odometry, even a perfect sensor model won't necessarily tell the robot where it is. For instance, if the robot sees a wall in front and orthogonal, and a wall behind at 45°, there are several places it could be; the motion model must give reasonable results to achieve an accurate location.
+The Bayes filter's resolution is limited to that of the grid. As shown above, the grid has a precision of 0.2 meter, so the Bayes filter algorithm is expected to give errors of up to 0.2 meter. Much of the error here may be attributed to this resolution, as the real trajectory often passes between two successive believed positions.
 
-Another point is that the Bayes filter's resolution is limited to that of the grid. As shown above, the grid has a precision of 0.2 meter, so the Bayes filter algorithm is expected to give errors of up to 0.2 meter. Much of the error here may be attributed to this resolution, as the real trajectory often passes between two successive believed positions.
+When the filter gives a position which is off by more than one 0.2m square, the odometry is the obvious culprit. The odometry data graph is usually upside-down and contorted. Since the Bayes filter begins with the prediction based on odometry, even a perfect sensor model won't necessarily tell the robot where it is. For instance, if the robot sees a wall in front and orthogonal, and a wall behind at 45°, there are several places it could be; the motion model must give reasonable results to achieve an accurate location. If the robot turned +90° but the odometry model shows it turned -45°, then the belief of being at the ground-truth position will be reduced.
 
 ### Performance
 
@@ -1763,5 +1763,105 @@ I double-checked that I am running the update step correctly. It is much shorter
 
 The entire loop took 660 seconds (11 minutes) to run, so nearly half of the trajectory time was spent calculating the motion model.
 The prediction step time ranged from 10 to 13 seconds, but the update step time ranged from 0.022 to 0.045 seconds.
+
+Adding code to compute steps only when the likelihood of the starting position was low reduced the computing time by a factor of 20:
+
+```python
+def prediction_step(cur_odom, prev_odom, bel):
+    u = compute_control(cur_odom,prev_odom) # What control action did we take?
+    bel_bar = np.zeros([20,20,18]) # Initialize prior belief with correct dims
+    for k in range(18):     # loop over all possible current poses,
+        for j in range(20): # in configuration space
+            for i in range(20):
+                pose = mapper.from_map(i,j,k) # from config space to world
+                # Do a quick calculation of starting point
+                xLast = pose[0] - u[1]*cos(deg2rad(pose[2]-u[2])) # robot retraces
+                yLast = pose[1] - u[1]*sin(deg2rad(pose[2]-u[2])) # its steps
+                thLast = pose[2] - u[2] - u[0]        # so order is reversed
+                (iLast,jLast,kLast) = mapper.to_map(xLast, yLast, thLast)
+                if (iLast < 0 or iLast > 19 or jLast < 0 or jLast > 19 or kLast < 0 or kLast > 17):
+                    bel_bar[i,j,k] = small
+                elif (bel[iLast,jLast,kLast] < threshold):
+                    bel_bar[i,j,k] = small
+                else: # We've decided the probability is worth computing.
+                    # odom_motion_model sums probability of getting here from
+                    # all possible previous poses
+                    bel_bar[i,j,k] = odom_motion_model(pose,bel,u)
+                    # so bel_bar is the probability of being at indices i,j,k
+    return bel_bar
+```
+
+As shown in the below output, the computation time dropped to about 0.5 second, while the accuracy seemed the same as before.
+
+    ----------------- 0 -----------------
+     | Resetting Robot pose
+
+    ---------- PREDICTION STATS -----------
+    GT index            :  (11, 9, 7)
+    Prior Bel index     : (0,0,0) with prob = 0.000000
+    POS ERROR      : (2.289, 1.805, 147.082)
+    ---------- PREDICTION STATS -----------
+    Prediction step time: 0.553617714000211 s
+     | Executing Observation Loop at: 30 deg/s
+
+    ---------- UPDATE STATS -----------
+    GT index      :  (11, 9, 8)
+    Bel index     : (12,9,8) with prob = 1.000000
+    Bel_bar prob at index = 0.000000
+
+    GT     : (0.389, -0.095, -16.918)
+    Belief   : (0.500, -0.100, -10.000)
+    POS ERROR : (-0.111, 0.005, -6.918)
+    ---------- UPDATE STATS -----------
+    Update step time: 0.03251633400032006 s
+    -------------------------------------
+
+
+    ----------------- 1 -----------------
+
+    ---------- PREDICTION STATS -----------
+    GT index            :  (13, 7, 9)
+    Prior Bel index     : (10,8,9) with prob = 0.755357
+    POS ERROR      : (0.604, -0.116, -9.730)
+    ---------- PREDICTION STATS -----------
+    Prediction step time: 0.5875632839997706 s
+     | Executing Observation Loop at: 30 deg/s
+
+    ---------- UPDATE STATS -----------
+    GT index      :  (13, 7, 9)
+    Bel index     : (12,7,8) with prob = 1.000000
+    Bel_bar prob at index = 0.000000
+
+    GT     : (0.704, -0.416, 3.270)
+    Belief   : (0.500, -0.500, -10.000)
+    POS ERROR : (0.204, 0.084, 13.270)
+    ---------- UPDATE STATS -----------
+    Update step time: 0.029232034999949974 s
+    -------------------------------------
+
+
+    ----------------- 2 -----------------
+
+    ---------- PREDICTION STATS -----------
+    GT index            :  (15, 8, 9)
+    Prior Bel index     : (10,6,8) with prob = 0.295517
+    POS ERROR      : (0.903, 0.301, 19.458)
+    ---------- PREDICTION STATS -----------
+    Prediction step time: 0.5740839580003012 s
+     | Executing Observation Loop at: 30 deg/s
+
+    ---------- UPDATE STATS -----------
+    GT index      :  (15, 8, 9)
+    Bel index     : (15,8,9) with prob = 1.000000
+    Bel_bar prob at index = 0.000000
+
+    GT     : (1.003, -0.399, 15.458)
+    Belief   : (1.100, -0.300, 10.000)
+    POS ERROR : (-0.097, -0.099, 5.458)
+    ---------- UPDATE STATS -----------
+    Update step time: 0.039681067999481456 s
+    -------------------------------------
+
+As this test showed, much of the computing time was spent computing probabilities which were bound to be very low.
 
 See the rest of my code and screenshots [here on Github](https://github.com/kreismit/ECE4960/tree/master/Lab8).
