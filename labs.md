@@ -2513,4 +2513,8 @@ def move_robot(linSpeed, angSpeed, t):
     return curr_odom, prev_odom
 ```
 
+Executing the 0th update step, and the first prediction step and the first update step worked, though slowly due to disconnections and reconnections:
+
+<video width="600" controls><source src="Lab9/Videos/OneStep.mp4" type="video/mp4"></video>
+
 To see the rest of my code and test scripts, see the [GitHub folder](https://github.com/kreismit/ECE4960/tree/master/Lab9).
