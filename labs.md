@@ -1872,7 +1872,10 @@ See the rest of my code and screenshots [here on Github](https://github.com/krei
 
 ## Procedure
 
-Downloaded and extracted the [lab 9 base code](https://cornell.box.com/s/ocqu1o5xeokln7zgimirgexf3p8s5kqt). Ran `setup.sh` in the appropriate directory and restarted the terminal. Wrote needed code, debugged, and gathered results. Ran `jupyter lab` in `~/catkin_ws/src/lab9/scripts/` and ran the Bayes filter code in a terminal window outside of the Jupyter notebook.
+Downloaded and extracted the [lab 9 base code](https://cornell.box.com/s/ocqu1o5xeokln7zgimirgexf3p8s5kqt). Ran `setup.sh` in the appropriate directory and restarted the terminal. Wrote needed code, debugged, and gathered results. Ran `jupyter lab` in `~/catkin_ws/src/lab9/scripts/` and ran the Bayes filter code in a terminal window outside of the Jupyter notebook. Tested the Bayes filter two ways:
+
+1. Init only: one update step and no movement or prediction step.
+2. Init and one step: update, move, predict, and update again.
 
 ## Results
 
@@ -2081,6 +2084,8 @@ Note that the odometry and "ground truth" values were far off the map, and thus 
     POS ERROR : (-1890.668, 1333.028, 1219.506)
     ---------- UPDATE STATS -----------
 
+So, bad odometry steals first place for the biggest contribution to error. It should be the case that the prediction step widens the belief distribution, and the update step narrows it; while the update step doesn't narrow the distribution as much as it should, there is nothing to narrow if the probabilities from the prediction step are all astronomically tiny.
+
 I am continuing to work on ways to improve the odometry data. Thus far, I am taking two main steps:
 
 1.. Calibration. The average initial offsets, calculated in `setup()`, are subtracted away in the loop.
@@ -2114,6 +2119,13 @@ aCX = 10*(aX-aXCal);                               // acceleration, calibrated b
 ```
 
 Also note that `pid` is initialized as `false`.
+
+Planned improvements, in order of priority:
+
+* Implementing a low-pass filter on all IMU readings, not only those going into the PID controller (in C).
+* Tuning the low-pass filter.
+* Rewriting my code to maintain a connection with the robot rather than dropping it after each action (in Python).
+* Factoring magnetometer data into the yaw reading to limit drift (in C).
 
 ### More Implementation Details
 
@@ -2500,7 +2512,7 @@ def returnPose():
     return (x,y,th)
 ```
 
-The implementation of the Bayes filter functions was quite trivial given the functions I wrote to do the exact things: `move_robot()` called `commander.move()` and `get_pose()` called `commander.returnPose()`. The only significant change I made was to make `set_vel()` do nothing since `move_robot()` returned the odometry values and handled all the background work. I did this because of the Bluetooth connection loss issue &ndash; the odometry values reset after each movement.
+The implementation of the Bayes filter functions was trivial given the functions I wrote to do the exact things: `move_robot()` called `commander.move()` and `get_pose()` called `commander.returnPose()`. The only significant change I made was to make `set_vel()` do nothing since `move_robot()` returned the odometry values and handled all the background work. I did this because of the Bluetooth connection loss issue &ndash; the odometry values reset after each movement.
 
 ```python
 def move_robot(linSpeed, angSpeed, t):
