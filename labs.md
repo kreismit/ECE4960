@@ -1865,3 +1865,652 @@ As shown in the below output, the computation time dropped to about 0.5 second, 
 As this test showed, much of the computing time was spent computing probabilities which were bound to be very low.
 
 See the rest of my code and screenshots [here on Github](https://github.com/kreismit/ECE4960/tree/master/Lab8).
+
+<h1 id="L9">Lab 9</h1>
+
+## Materials: same as in previous labs.
+
+## Procedure
+
+Downloaded and extracted the [lab 9 base code](https://cornell.box.com/s/ocqu1o5xeokln7zgimirgexf3p8s5kqt). Ran `setup.sh` in the appropriate directory and restarted the terminal. Wrote needed code, debugged, and gathered results. Ran `jupyter lab` in `~/catkin_ws/src/lab9/scripts/` and ran the Bayes filter code in a terminal window outside of the Jupyter notebook.
+
+## Results
+
+I used test scripts like the following to debug my code:
+
+```python
+#!/usr/bin/python3
+#import testOdom
+import commander
+
+#readings = testOdom.testMyCode()
+
+readings = commander.observationLoop()
+
+# The first reading needs to be in the direction
+# of the robot's original heading.
+# But, out has readings at angles 20:20:360.
+#readings.insert(0, readings.pop(-1))  # move the last element to the front
+print(readings)
+
+#print(commander.returnPose())
+
+#commander.move(0, 100, 1)#!/usr/bin/python3
+```
+        artemis@artemis-VirtualBox:~/Shared/ECE4960/Lab9$ ./test.py 
+    [(1.0, 656.0), (21.0, 736.0), (41.0, 1245.0), (61.0, 1889.0), (81.0, 0.0), (101.0, 0.0), (121.0, 1365.0), (141.0, 1801.0), (162.0, 1106.0), (182.0, 874.0), (201.0, 730.0), (221.0, 1251.0), (241.0, 1395.0), (261.0, 526.0), (281.0, 1512.0), (301.0, 894.0), (321.0, 643.0), (341.0, 577.0)]
+
+I struggled for a long time to call the Bluetooth `asyncio`-based code from a procedural external function; of great help were the [`asyncio` documentation](https://docs.python.org/3/library/asyncio.html) and [Dan's cheat sheet on `asyncio`.](https://cheat.readthedocs.io/en/latest/python/asyncio.html) When I made it work, I tested it in a terminal window (not in a Jupyter notebook); running it in the Jupyter notebook gave error messages like `RuntimeError: This event loop is already running`. The event loop which was running was that of `iPython`, which powers the Jupyter Notebook. I could not start a new event loop from a running event loop in `iPython`, so I ran the code in a terminal window for the rest of the lab. Below were the results of the first "successful" run.
+
+```
+artemis@artemis-VirtualBox:~/Shared/ECE4960/Lab9$ ./realRobot.py
+Using python version: 3.6.9 (default, Oct  8 2020, 12:12:24) 
+[GCC 8.4.0] 
+
+Initializing Node
+Initializing Real Robot
+Initializing beliefs with a Uniform Distribution
+Uniform Belief with each cell value:  0.00017806267806267807
+ | Precaching Views...
+ | Precaching Time:  29.009833812713623
+Initializing beliefs with a Uniform Distribution
+Uniform Belief with each cell value:  0.00017806267806267807
+Update Step
+/home/artemis/Shared/ECE4960/Lab9/robot_interface.py:570: RuntimeWarning: invalid value encountered in true_divide
+  self.bel = self.bel / np.sum(self.bel)
+     | Update Time:  0.005212068557739258
+
+---------- UPDATE STATS -----------
+GT index      :  (-2211, 673, 7)
+Bel index     :  (0, 0, 0) with prob =  nan
+Bel_bar prob at index =  0.00017806267806267807
+
+GT     : (-443.591, 132.157, 327.692)
+Belief   : (-0.300, -0.200, -170.000)
+POS ERROR : (-443.291, 132.357, 497.692)
+---------- UPDATE STATS -----------
+
+```
+
+Repeatedly, the robot's belief had a probability of `nan`, throwing a warning `RuntimeWarning: invalid value encountered in true_divide`.
+
+With some debugging, I saw that the probabilities were vanishingly small and thus the normalization returned NaN because the sum of the probabilities was zero. I realized that the map was in meters, but I was still returning ranges in millimeters, so the three-orders-of-magnitude difference caused the probability to underflow. After fixing this issue, I started getting sensible results.
+
+```
+artemis@artemis-VirtualBox:~/Shared/ECE4960/Lab9$ ./realRobot.py 
+Using python version: 3.6.9 (default, Oct  8 2020, 12:12:24) 
+[GCC 8.4.0] 
+
+Initializing Node
+Initializing Real Robot
+Initializing beliefs with a Uniform Distribution
+Uniform Belief with each cell value:  0.00017806267806267807
+ | Precaching Views...
+ | Precaching Time:  29.22792935371399
+Initializing beliefs with a Uniform Distribution
+Uniform Belief with each cell value:  0.00017806267806267807
+Update Step
+     | Update Time:  0.017453432083129883
+
+---------- UPDATE STATS -----------
+GT index      :  (-1492, -37, 6)
+Bel index     :  (8, 3, 0) with prob =  0.7018934
+Bel_bar prob at index =  0.00017806267806267807
+
+GT     : (-299.758, -10.164, 319.688)
+Belief   : (1.300, 0.400, -170.000)
+POS ERROR : (-301.058, -10.564, 489.688)
+---------- UPDATE STATS -----------
+...
+artemis@artemis-VirtualBox:~/Shared/ECE4960/Lab9$ ./realRobot.py 
+Using python version: 3.6.9 (default, Oct  8 2020, 12:12:24) 
+[GCC 8.4.0] 
+
+Initializing Node
+Initializing Real Robot
+Initializing beliefs with a Uniform Distribution
+Uniform Belief with each cell value:  0.00017806267806267807
+ | Precaching Views...
+ | Precaching Time:  27.403477907180786
+Initializing beliefs with a Uniform Distribution
+Uniform Belief with each cell value:  0.00017806267806267807
+Update Step
+     | Update Time:  0.014315605163574219
+
+---------- UPDATE STATS -----------
+GT index      :  (1844, 111, 9)
+Bel index     :  (10, 4, 17) with prob =  0.9999905
+Bel_bar prob at index =  0.00017806267806267807
+
+GT     : (367.607, 19.764, 369.258)
+Belief   : (1.700, 0.600, 170.000)
+POS ERROR : (365.907, 19.164, 199.258)
+---------- UPDATE STATS -----------
+artemis@artemis-VirtualBox:~/Shared/ECE4960/Lab9$ ./realRobot.py 
+Using python version: 3.6.9 (default, Oct  8 2020, 12:12:24) 
+[GCC 8.4.0] 
+
+Initializing Node
+Initializing Real Robot
+Initializing beliefs with a Uniform Distribution
+Uniform Belief with each cell value:  0.00017806267806267807
+ | Precaching Views...
+ | Precaching Time:  29.795493364334106
+Initializing beliefs with a Uniform Distribution
+Uniform Belief with each cell value:  0.00017806267806267807
+Update Step
+     | Update Time:  0.004567146301269531
+
+---------- UPDATE STATS -----------
+GT index      :  (-2593, -111, 8)
+Bel index     :  (1, 12, 8) with prob =  0.9997010
+Bel_bar prob at index =  0.00017806267806267807
+
+GT     : (-519.871, -24.925, 355.355)
+Belief   : (-0.100, 2.200, -10.000)
+POS ERROR : (-519.771, -27.125, 365.355)
+---------- UPDATE STATS -----------
+```
+The above should all read about 0,0,0 since the robot was facing in the positive direction from very close to the map's origin. It doesn't; often it thinks it's in the wrong corner.
+
+![](Lab9/Images/Screenshot from 2020-11-10 20-50-35.png)
+
+Figure 1. The robot believes it's in one corner but actually it's in another (real position about 0,0).
+
+
+However, the robot's turn radius seemed to interfere with its ability to accurately measure the distance from walls. In the mapping lab, I compensated for the turn radius since it was consistent and small. I'm not sure how to do that in this lab since the readings directly factor into the Bayes filter. I also can't make the robot spin in place perfectly, because that would require spinning too fast. So I allowed the robot to "swing turn", realizing this would make it think it was too close to the wall.
+
+
+Figure 2. The robot was pretty much right, but it thought it was too close to the wall.
+
+Note that the odometry and "ground truth" values were far off the map, and thus the bel_bar probability summed to zero.
+
+    artemis@artemis-VirtualBox:~/Shared/ECE4960/Lab9$ ./realRobot.py 
+    Using python version: 3.6.9 (default, Oct  8 2020, 12:12:24) 
+    [GCC 8.4.0] 
+
+    Initializing Node
+    Initializing Real Robot
+    Initializing beliefs with a Uniform Distribution
+    Uniform Belief with each cell value:  0.00017806267806267807
+     | Precaching Views...
+     | Precaching Time:  26.63333487510681
+    Initializing beliefs with a Uniform Distribution
+    Uniform Belief with each cell value:  0.00017806267806267807
+    Update Step
+         | Update Time:  0.0166933536529541
+
+    ---------- UPDATE STATS -----------
+    GT index      :  (2618, 40, 8)
+    Bel index     :  (8, 5, 0) with prob =  0.9914363
+    Bel_bar prob at index =  0.00017806267806267807
+
+    GT     : (522.549, 5.599, 351.045)
+    Belief   : (1.300, 0.800, -170.000)
+    POS ERROR : (521.249, 4.799, 521.045)
+    ---------- UPDATE STATS -----------
+    Prediction Step
+    Uniform Belief with each cell value:  0.0
+    /home/artemis/Shared/ECE4960/Lab9/robot_interface.py:557: RuntimeWarning: invalid value encountered in true_divide
+      self.bel_bar = self.bel_bar / np.sum(self.bel_bar)
+         | Prediction Time:  0.8416004180908203
+
+    ---------- PREDICTION STATS -----------
+    GT index            :  (-4362, 4099, 7)
+    Prior Bel index     :  (0, 0, 0) with prob =  nan
+    POS ERROR      : (-873.324, 817.528, 861.408)
+    Service call failed: service [/plot_prob_dist] responded with an error: b'error processing request: cannot reshape array of size 312 into shape (20,20)'
+    ---------- PREDICTION STATS -----------
+    Update Step
+         | Update Time:  0.018723487854003906
+
+    ---------- UPDATE STATS -----------
+    GT index      :  (-9448, 6677, 7)
+    Bel index     :  (0, 0, 0) with prob =  nan
+    Bel_bar prob at index =  nan
+
+    GT     : (-1890.968, 1332.828, 1049.506)
+    Belief   : (-0.300, -0.200, -170.000)
+    POS ERROR : (-1890.668, 1333.028, 1219.506)
+    ---------- UPDATE STATS -----------
+
+I am continuing to work on ways to improve the odometry data. Thus far, I am taking two main steps:
+
+1.. Calibration. The average initial offsets, calculated in `setup()`, are subtracted away in the loop.
+```c++
+
+aCX = 10*(aX-aXCal);                               // acceleration, calibrated but ignoring rotation
+    v = v + aCX*dt; // integrate to get velocity...
+    X = X + v*cos(yaw*deg2rad)*dt;    // and integrate again (in polar coordinates) to get position.
+    Y = Y + v*sin(yaw*deg2rad)*dt;
+```
+
+2.. Stopping integration when the robot is stopped.
+
+```c++
+  if(pid){ // As long as we're running the controller,
+  ...
+    if (r[0] !=0){ // If a nonzero linear velocity is requested,
+    ...
+    }
+    else{ // spinning in place; ignore linear velocity
+      for(int i=0; i<2; i++){
+        power[i] = output[1] + 127; // forward on both sides, and the bot spins CCW
+      }
+      v = 0;   // and reset odometry velocity reading
+    }
+  }
+  else{ // controller isn't running; motors are stopped
+    // and reset odometry velocity reading
+    v = 0;
+  }
+```
+
+Also note that `pid` is initialized as `false`.
+
+### More Implementation Details
+
+Below is my entire code to make the Artemis handle `SET_VEL` and other PID-related requests:
+
+```c++
+void loop(){
+...
+      case SET_VEL:
+      {
+        for(byte i=0; i<2; i++){
+          r[i] = ((float*)cmd->data)[i];
+          Serial.printf("r[%d] = %3.2f\n",i,r[i]);
+        }
+        if (r[0] == 0 && r[1] == 0){ // Special case: stopping robot completely
+          pid = false;
+          scmd.setDrive(left,0,0);
+          scmd.setDrive(right,0,0);
+          Serial.println("Stopping robot.");
+        }
+        else{
+          pid = true;
+          Serial.println("Starting PID-controlled movement.");
+        }
+        break;
+      }
+      case GET_VEL:
+      {
+        Serial.println("Going to send current linear and angular rates");
+        res_cmd->command_type = GET_VEL;
+        bytestream_active = 4;              // the angles are 32-bit floats
+        ((uint32_t *)res_cmd->data)[0] = 0;
+        break;
+      }
+      case SET_GAINS:
+      {
+        // Sets PID gains for linear (0) and angular (1) velocity control
+        for(byte i=0; i<2; i++){
+          kp[i] = ((float*)cmd->data)[3*i];
+          ki[i] = ((float*)cmd->data)[3*i+1];
+          kd[i] = ((float*)cmd->data)[3*i+2];
+        }
+        Serial.printf("Linear: Kp = %3.2f, Ki = %3.2f, Kd = %3.2f\n",kp[0],ki[0],kd[0]);
+        Serial.printf("Angular: Kp = %3.2f, Ki = %3.2f, Kd = %3.2f\n",kp[1],ki[1],kd[1]);
+        break;
+      }
+      case SER_RX:
+      {
+        Serial.println("Got a serial message");
+        pushMessage((char *)&cmd->data, cmd->length);
+        break;
+      }
+      case GET_ODOM:
+      {
+        #ifdef SERIAL_DEBUG
+          Serial.println("Going to send current R, P, and Y angles");
+        #endif
+        res_cmd->command_type = GET_ODOM;
+        //res_cmd->length = 6;
+        //((float *) res_cmd->data)[0] = yaw; // send current yaw (a float)
+        //amdtpsSendData((uint8_t *)res_cmd, res_cmd->length);
+        bytestream_active = 4;              // the angles are 32-bit floats
+        ((uint32_t *)res_cmd->data)[0] = 0;
+        break;
+      }
+      ...
+    if (res_cmd->command_type==GET_ODOM){
+      data32[0] = X;                   //update Bluetooth data
+      data32[1] = Y;
+      data32[2] = yaw;
+    }
+    else if (res_cmd->command_type==GET_VEL){
+      // Give raw values (but with calibration offset)
+      data32[0] = v;  // Raw X velocity
+      data32[1] = 0;  // Y velocity (sideways) assumed zero
+      data32[2] = omZ;
+    }
+    ...
+  // Handle PID command
+  if(pid){ // As long as we're running the controller,
+    for(int i=0; i<2; i++){ // run two separate controllers for linear (0) and angular (1)
+      eLast[i] = e[i];  // Update error (but don't update time - this is already done in the gyro section)
+      //tLast = t;
+      //t = micros();
+      //dt = (t - tLast)*0.000001;
+      if(i){ // if this is the angular controller
+        e[i] = alphaE[i]*(r[i]-omZ)+(1-alphaE[i])*eLast[i]; // lag filter on error
+      }else{ // if this is the linear controller
+        e[i] = alphaE[i]*(r[i]-v)+(1-alphaE[i])*eLast[i];  // lag filter on error
+      }
+      inte[i] = inte[i] + e[i]*dt;                          // integral term
+      de = e[i] - eLast[i];                                 // numerator of deriv. term
+      if (inte[i] > 127)                                    // anti-windup control for integral
+        inte[i] = 127;
+      else if (inte[i] < -127)
+        inte[i] = -127;
+      output[i] = kp[i]*e[i]+ki[i]*inte[i]+kd[i]*(de/dt);   // calculate output
+    }
+//    #ifdef SERIAL_PID
+//      Serial.printf("P = %3.1f, I = %3.1f, D = %3.1f\n",kp[0]*e[0], ki[0]*inte[0], kd[0]*((e[0]-eLast[0])/dt));
+//    #endif
+    /* Remember: clockwise is direction 1. 
+       Right goes full power forward for 255 and backward for 0.
+       Left goes full power backward for 255 and forward for 0.
+       When the robot is flipped, right becomes left and vice versa, so the opposite is true.
+       However, for spinning, the robot actually spins in the same direction, from the floor's perspective, regardless of
+       which way is up.                                                                             */
+    if (r[0] !=0){ // If a nonzero linear velocity is requested,
+      for(int i=0; i<2; i++){ // combine outputs from linear and angular PID controllers
+        int sign = pow(-1, (float) i+FLIPPED); // -1^(i+1) so -1 for i=0; 1 for i=1
+        // I couldn't make PID control with the accelerometer work, so I'm using open-loop.
+        // Proportional gain is the multiplier (H) for the reference input.
+        power[i] = sign*kp[0]*r[0] + output[1] + 127; // flip x output as appropriate
+      }
+    }
+    else{ // spinning in place; ignore linear velocity
+      for(int i=0; i<2; i++){
+        power[i] = output[1] + 127; // forward on both sides, and the bot spins CCW
+      }
+      v = 0;   // and reset odometry velocity reading
+    }
+    for(int i=0; i<2; i++){    // update motor powers
+      if (power[i] > 255)
+        power[i] = 255;
+      else if(power[i] < 0)
+        power[i] = 0;
+      else
+        power[i] = power[i];
+      scmd.writeRegister(SCMD_MA_DRIVE+i,power[i]);  // the driver accepts a value 0-255
+    }
+  }
+  else{ // controller isn't running; motors are stopped
+    // and reset odometry velocity reading
+    v = 0;
+  }
+```
+
+The odometry data is always streaming to the computer over Bluetooth as long as `GET_ODOM` is the command signal. The odometry data actually includes a ToF reading as well, so only one type of packet is needed. I chose not to save up all the observation loop readings on the robot since the reliability of Bluetooth commmunication was not great according to my tests. Instead, I used Python code to command the robot to spin, send back odometry and ToF data, and then stop spinning. Since the data was always streaming to the computer, the computer predictably got more than 18 ToF readings, with their associated headings; then, the Python code determined which ToF readings to keep based on the robot's heading when it took them.
+
+```python
+def observationLoop():
+    global odomList             # list of (theta, range) tuples
+    loop = asyncio.get_event_loop()
+    try:
+        loop.run_until_complete(robotRun(loop,"obsLoop")) # and run the tasks.
+    except RuntimeError:
+        obsLoop = loop.create_task(robotRun(loop,"obsLoop")) # and run the tasks.
+        while not obsLoop.done():
+            time.sleep(0.05)
+    '''Post-process the angle array.'''
+    length = len(odomList)      # number of entries in list
+    out = []                    # output list
+    
+    for i in range(length):     # loop through the entire list after spinning
+        currAngle = round(odomList[i][0])   # current angle (integer)
+        if (currAngle%20 == 0) and (currAngle/20 == len(out)-1):
+            # if the angle is a multiple of 20° AND we haven't already checked it
+            #out.append((currAngle,odomList[i])) # for debugging
+            out.append(odomList[i][1]/1000)  # save the angle and the range IN M
+        elif currAngle/20 > (len(out)): # if we skipped one
+            j = i
+            angleJ = round(odomList[j][0])
+            while angleJ < (len(out)+1):
+                j = j - 1                # average two closest angles
+                angleJ = abs(round(odomList[j][0]))
+            r = 0.5*odomList[i][1]+0.5*odomList[j][1]
+            th = 0.5*currAngle + 0.5*angleJ
+            #out.append((th,r)) # debugging
+            out.append(r/1000) # /1000 since measurements are in mm and we want m
+            
+    return out
+```
+
+The `robotRun` asynchronous task takes a parameter which tells it which routine to run.
+
+```python
+async def robotRun(loop, order):
+    ...
+    async def setVel():
+        # Tell the robot how fast to drive (or stop)
+        global odomChanged
+        data = pack("<ff", rX, rTh)
+        length = 8 # Two four-byte numbers
+        await theRobot.sendCommand(Commands.SET_VEL,length,data)
+    
+    async def spin():
+        global odomd, odomList, rX, rTh, kpX, kiX, kdX, kpTh, kiTh, kdTh
+        # Send control gains
+        data = pack("<ffffff", kpX, kiX, kdX, kpTh, kiTh, kdTh)
+        length = 24 # Six four-byte numbers
+        await theRobot.sendCommand(Commands.SET_GAINS,length,data)
+        await theRobot.sendCommand(Commands.GET_ODOM)
+        while odomd[2] == 0:   # wait for values to come
+            if(theRobot.availMessage()):    # but still check for BT messages
+                print(f"BTDebug: {theRobot.getMessage()}")
+            await asyncio.sleep(0.1)
+            #print("Waiting for angle...") # for debugging
+        angStart = odomd[2]
+        #print(angStart) # for debugging
+        
+        rTh = 30 # spin at 30°/second counterclockwise (CCW = +, CW = -)
+        # Send the velocity command
+        data = pack("<ff", rX, rTh)
+        length = 8 # Two four-byte numbers
+        await theRobot.sendCommand(Commands.SET_VEL,length,data)
+        ang = 0
+        while ang < 360:       # Run until the robot has made a full turn
+            ang = abs(odomd[2] - angStart)   # update relative turn amount (strictly positive)
+            odomList.append((ang,odomd[3]))  # save the RELATIVE angle and range to the list
+            #print(ang) # for debugging
+            if(theRobot.availMessage()):
+                print(f"BTDebug: {theRobot.getMessage()}")
+            await asyncio.sleep(0.02)
+        
+        rTh = 0 # Stop the robot
+        # Send the velocity command
+        data = pack("<ff", rX, rTh)
+        length = 8 # Two four-byte numbers
+        await theRobot.sendCommand(Commands.SET_VEL,length,data)
+    
+    async def drive():
+        global rX, rTh, howLong, kpX, kiX, kdX, kpTh, kiTh, kdTh
+        # Send control gains
+        data = pack("<ffffff", kpX, kiX, kdX, kpTh, kiTh, kdTh)
+        length = 24 # Six four-byte numbers
+        await theRobot.sendCommand(Commands.SET_GAINS,length,data)
+        # Request odometry data
+        await theRobot.sendCommand(Commands.GET_ODOM)
+        while odomd[2] == 0:   # wait for values to come
+            if(theRobot.availMessage()): # while waiting, check for BT messages
+                print(f"BTDebug: {theRobot.getMessage()}")
+            await asyncio.sleep(0.1)
+        
+        # Send the velocity command (don't care what it is - set elsewhere)
+        data = pack("<ff", rX, rTh)
+        length = 8 # Two four-byte numbers
+        await theRobot.sendCommand(Commands.SET_VEL,length,data)
+        tStart = time.monotonic()
+        t = 0
+        while t < howLong:   # wait for values to come
+            if(theRobot.availMessage()):  # while waiting, check for BT messages
+                print(f"BTDebug: {theRobot.getMessage()}")
+            await asyncio.sleep(0.1)
+            t = time.monotonic()-tStart     # watch the time too
+        rX = 0
+        rTh = 0 # Stop the robot
+        # Send the velocity command
+        data = pack("<ff", rX, rTh)
+        length = 8 # Two four-byte numbers
+        await theRobot.sendCommand(Commands.SET_VEL,length,data)
+        
+    async def odom():
+        global odomd
+        await theRobot.sendCommand(Commands.GET_ODOM)
+        while odomd[2] == 0:   # wait for values to come
+            if(theRobot.availMessage()):    # but still check for BT messages
+                print(f"BTDebug: {theRobot.getMessage()}")
+            await asyncio.sleep(0.1)
+            #print("Waiting for angle...") # for debugging
+        # and the output is printed to a global variable.
+    
+    # You can put a UUID (MacOS) or MAC address (Windows and Linux)
+    # in Settings["Cached"].
+    if (not Settings["cached"]):
+        theRobot_bt = await getRobot()
+
+    else:
+        theRobot_bt = type("", (), {})()
+        theRobot_bt.address = Settings["cached"]
+    # print(theRobot_bt.address)
+    while (not theRobot_bt):
+        print("Robot not found")
+        theRobot_bt = await getRobot()
+
+    if (not Settings["cached"]):
+        print(f"New robot found. Must cache \
+            {theRobot_bt.address} manually in settings.py")
+
+    async with BleakClient(theRobot_bt.address, loop=loop, device=Settings["adapter"]) as client:
+        # if (await client.is_connected()):
+        #    print("Robot connected!")
+        # srv = await client.get_services()
+        # print(srv)
+        await client.is_connected()
+        theRobot = Robot(client, bleak=True)
+        await client.start_notify(Descriptors["TX_CHAR_UUID"].value,
+                                  simpleHandler)
+
+        # await client.write_gatt_char(Descriptors["RX_CHAR_UUID"].value, msg)
+
+        async def myRobotTasks():
+            # PID loop happens offline on the robot. Print useful info.
+            global kpX, kiX, kdX, kpTh, kiTh, kdTh, odomd, rX, rTh
+            data = pack("<ffffff", kpX, kiX, kdX, kpTh, kiTh, kdTh)
+            length = 24 # Six four-byte numbers
+            await theRobot.sendCommand(Commands.SET_GAINS,length,data)
+            await theRobot.sendCommand(Commands.GET_ODOM)
+            rXLast = rX
+            rThLast = rTh
+            while isRunning:    # keep updating stuff until the code stops
+                if not(rX==rXLast and rTh==rThLast): # if either one changes
+                    data = pack("<ff", rX, rTh)
+                    length = 8 # Two four-byte numbers
+                    await theRobot.sendCommand(Commands.SET_VEL,length,data)
+                    rXLast = rX # update "last" values
+                    rTHLast = rTh
+                    # and we should keep asking for odometry values
+                    await theRobot.sendCommand(Commands.GET_ODOM)
+                    await asyncio.sleep(0.05) # a whole 1/20 second
+        
+        if order=="obsLoop":
+            await asyncio.gather(spin())
+        elif order=="move":
+            await asyncio.gather(drive())
+        else:
+            await asyncio.gather(odom())
+        # async for msg in checkMessages():
+        #    print(f"BTDebug: {msg}")
+```
+
+Another issue I experienced was that when the Bluetooth connection died after the task completed, the odometry values reset. I handled this using a cache file called `odometryCache.txt`:
+
+```python
+def readCache():
+    odomAbsolute = [0,0,0]    # the robot's onboard odometry resets each time
+    # the Bluetooth connection dies. Save the last value and add each displacement to the last.
+    with open("odometryCache.txt", "r") as file:
+        line = file.readline() # should only be one line
+        j = 0
+        for i in range(3):
+            num = ""
+            while not (line[j]==","):
+                num = num + line[j]
+                j = j + 1
+            j = j + 1 # again, to get past the comma
+            odomAbsolute[i] = float(num)
+        
+    return odomAbsolute
+
+def writeCache(odomAbsolute):
+    with open("odometryCache.txt", "w") as file:
+        for i in range(3):
+            file.write(str(odomAbsolute[i])+",")
+
+def resetCache():
+    writeCache((0,0,0))
+```
+
+The other two tasks, moving the robot and getting odometry pose, were accomplished using simple functions. Note the use of the cache. (`observationLoop()` did not use the cache since the robot stops in nearly the same place it started.)
+
+```python
+
+`def move(linSpeed, angSpeed, thisLong):
+    # Drive a certain distance with a certain curvature, and then stop.
+    global rX, rTh, howLong
+    rX = linSpeed
+    rTh = angSpeed
+    howLong = thisLong
+    odomAbsolute = readCache() # the robot's onboard odometry resets each time
+    # the Bluetooth connection dies. Save the last value and add each displacement to the last.
+    x = odomAbsolute[0]
+    y = odomAbsolute[1]
+    th = odomAbsolute[2]
+    loop = asyncio.get_event_loop()
+    loop.run_until_complete(robotRun(loop, "move")) # and run the tasks.
+    x = x + odomd[0]*cos(radians(th)) - odomd[1]*sin(radians(th))
+    y = y + odomd[0]*sin(radians(th)) + odomd[1]*cos(radians(th))
+    th = th + odomd[2]
+    writeCache([x,y,th])
+    return (x,y,th)
+
+def returnPose():
+    odomAbsolute = readCache() # the robot's onboard odometry resets each time
+    # the Bluetooth connection dies. Save the last value and add each displacement to the last.
+    x = odomAbsolute[0]
+    y = odomAbsolute[1]
+    th = odomAbsolute[2]
+    loop = asyncio.get_event_loop()
+    loop.run_until_complete(robotRun(loop, "pullOdom")) # and run the tasks.
+    x = x + odomd[0]*cos(radians(th)) - odomd[1]*sin(radians(th))
+    y = y + odomd[0]*sin(radians(th)) + odomd[1]*cos(radians(th))
+    th = th + odomd[2]
+    writeCache([x,y,th])
+    return (x,y,th)
+```
+
+The implementation of the Bayes filter functions was quite trivial given the functions I wrote to do the exact things: `move_robot()` called `commander.move()` and `get_pose()` called `commander.returnPose()`. The only significant change I made was to make `set_vel()` do nothing since `move_robot()` returned the odometry values and handled all the background work. I did this because of the Bluetooth connection loss issue &ndash; the odometry values reset after each movement.
+
+```python
+def move_robot(linSpeed, angSpeed, t):
+    '''Inputs:  linSpeed (float): linear velocity target; 0 for point turn
+                angSpeed (float): angular velocity target; 0 for straight line
+                t (float): time to move at this speed
+        Outputs: curr_odom (float tuple): x, y, and theta after moving
+                prev_odom (float tuple): x, y, and theta before moving
+    '''
+    prev_odom = robot.get_pose()
+
+    # Code to move your robot goes here
+    curr_odom = commander.move(linSpeed, angSpeed, t)
+    # the move function both moves the robot and outputs the pose
+    #curr_odom = robot.get_pose()
+    
+    return curr_odom, prev_odom
+```
+
+To see the rest of my code and test scripts, see the [GitHub folder](https://github.com/kreismit/ECE4960/tree/master/Lab9).

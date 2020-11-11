@@ -82,4 +82,4 @@ Q: Why is the odometry model more accurate?
 A: The velocity model assumes you're moving in an arc of a circle. You are never moving in a perfect arc.
 However, the odometry model is more computationally expensive (?).
 
-Usually, *the odometry model is used for path planning and velocity model is used for prediction.*
+Usually, *the velocity model is used for path planning and odometry model is used for prediction.*

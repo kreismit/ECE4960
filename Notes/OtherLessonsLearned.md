@@ -43,6 +43,80 @@ for(int i=0; i<25; i++){
 
 # Making Ubuntu Work for You
 
+## The `catkin_ws` Directory
+
+Use links! Rather than copying all files you need into the folder, and editing them only on the VM, it's very convenient to have a file live in one place and link it in the `catkin_ws/src/labX/scripts` directory. Then you can open it from `/home/artemis` or from the shared folder instead. For example:
+
+    ln -s /home/artemis/Shared/ECE4960/Lab9/commander.py commander.py
+
+## Python 3.7
+
+I needed to install the `python3.7-dev` package to get enough of Python to do what I wanted. Then, since ROS needed certain versions of Python, I changed all the links in `/usr/bin/` to point to `python3.7`:
+
+    artemis@artemis-VirtualBox:~$ ls -lh $(which python3)
+
+gave `/usr/bin/python3.6` after I installed; after I was done, it showed `/usr/bin/python3.7`. There were several other links I had to fix too:
+
+```
+artemis@artemis-VirtualBox:~$ ls -lh /usr/bin/python*
+lrwxrwxrwx 1 root root    9 Apr 16  2018 /usr/bin/python -> python2.7
+lrwxrwxrwx 1 root root    9 Apr 16  2018 /usr/bin/python2 -> python2.7
+-rwxr-xr-x 1 root root 3.5M Sep 30 09:38 /usr/bin/python2.7
+lrwxrwxrwx 1 root root   33 Sep 30 09:38 /usr/bin/python2.7-config -> x86_64-linux-gnu-python2.7-config
+lrwxrwxrwx 1 root root   16 Apr 16  2018 /usr/bin/python2-config -> python2.7-config
+lrwxrwxrwx 1 root root   18 Nov  9 13:56 /usr/bin/python3 -> /usr/bin/python3.7
+-rwxr-xr-x 2 root root 4.4M Oct  8 08:12 /usr/bin/python3.6
+lrwxrwxrwx 1 root root   33 Oct  8 08:12 /usr/bin/python3.6-config -> x86_64-linux-gnu-python3.6-config
+-rwxr-xr-x 2 root root 4.4M Oct  8 08:12 /usr/bin/python3.6m
+lrwxrwxrwx 1 root root   34 Oct  8 08:12 /usr/bin/python3.6m-config -> x86_64-linux-gnu-python3.6m-config
+-rwxr-xr-x 2 root root 4.7M Nov  7  2019 /usr/bin/python3.7
+lrwxrwxrwx 1 root root   33 Nov  7  2019 /usr/bin/python3.7-config -> x86_64-linux-gnu-python3.7-config
+-rwxr-xr-x 2 root root 4.7M Nov  7  2019 /usr/bin/python3.7m
+lrwxrwxrwx 1 root root   34 Nov  7  2019 /usr/bin/python3.7m-config -> x86_64-linux-gnu-python3.7m-config
+lrwxrwxrwx 1 root root   16 Oct 25  2018 /usr/bin/python3-config -> python3.6-config
+lrwxrwxrwx 1 root root   10 Aug 21 14:22 /usr/bin/python3m -> python3.6m
+lrwxrwxrwx 1 root root   17 Oct 25  2018 /usr/bin/python3m-config -> python3.6m-config
+lrwxrwxrwx 1 root root   16 Apr 16  2018 /usr/bin/python-config -> python2.7-config
+artemis@artemis-VirtualBox:~$ sudo rm /usr/bin/python3m
+artemis@artemis-VirtualBox:~$ sudo ln -s /usr/bin/python3.7m /usr/bin/python3m
+artemis@artemis-VirtualBox:~$ sudo rm /usr/bin/python3-config 
+artemis@artemis-VirtualBox:~$ sudo ln -s /usr/bin/python3.7-config /usr/bin/python3-config
+artemis@artemis-VirtualBox:~$ sudo rm /usr/bin/python3m-config 
+artemis@artemis-VirtualBox:~$ sudo ln -s /usr/bin/python3.7m-config /usr/bin/python3m-config
+artemis@artemis-VirtualBox:~$ ls -lh /usr/bin/python*
+lrwxrwxrwx 1 root root    9 Apr 16  2018 /usr/bin/python -> python2.7
+lrwxrwxrwx 1 root root    9 Apr 16  2018 /usr/bin/python2 -> python2.7
+-rwxr-xr-x 1 root root 3.5M Sep 30 09:38 /usr/bin/python2.7
+lrwxrwxrwx 1 root root   33 Sep 30 09:38 /usr/bin/python2.7-config -> x86_64-linux-gnu-python2.7-config
+lrwxrwxrwx 1 root root   16 Apr 16  2018 /usr/bin/python2-config -> python2.7-config
+lrwxrwxrwx 1 root root   18 Nov  9 13:56 /usr/bin/python3 -> /usr/bin/python3.7
+-rwxr-xr-x 2 root root 4.4M Oct  8 08:12 /usr/bin/python3.6
+lrwxrwxrwx 1 root root   33 Oct  8 08:12 /usr/bin/python3.6-config -> x86_64-linux-gnu-python3.6-config
+-rwxr-xr-x 2 root root 4.4M Oct  8 08:12 /usr/bin/python3.6m
+lrwxrwxrwx 1 root root   34 Oct  8 08:12 /usr/bin/python3.6m-config -> x86_64-linux-gnu-python3.6m-config
+-rwxr-xr-x 2 root root 4.7M Nov  7  2019 /usr/bin/python3.7
+lrwxrwxrwx 1 root root   33 Nov  7  2019 /usr/bin/python3.7-config -> x86_64-linux-gnu-python3.7-config
+-rwxr-xr-x 2 root root 4.7M Nov  7  2019 /usr/bin/python3.7m
+lrwxrwxrwx 1 root root   34 Nov  7  2019 /usr/bin/python3.7m-config -> x86_64-linux-gnu-python3.7m-config
+lrwxrwxrwx 1 root root   25 Nov  9 14:03 /usr/bin/python3-config -> /usr/bin/python3.7-config
+lrwxrwxrwx 1 root root   19 Nov  9 14:03 /usr/bin/python3m -> /usr/bin/python3.7m
+lrwxrwxrwx 1 root root   26 Nov  9 14:04 /usr/bin/python3m-config -> /usr/bin/python3.7m-config
+lrwxrwxrwx 1 root root   16 Apr 16  2018 /usr/bin/python-config -> python2.7-config
+artemis@artemis-VirtualBox:~$ 
+```
+
+Since Ubuntu 18.04 is two years old and officially supports only Python 3.6, I needed to use `pip` to install all the packages necessary. Some packages Ubuntu uses were no longer supported in 3.7! But I got everything working after installing these packages:
+
+    jupyter-core
+    jupyterlab
+    rospkg
+    rospy
+    numpy
+    scipy
+    matplotlib
+    pyqtgraph
+    pyqt5
+
 ## Less Memory -> More Responsive
 
 The Ubuntu 18.04 system, by default, has some significant memory leaks. Running the task manager (System Monitor) shows that the Evolution (Linux email) server is running in at least two processes and using near 100MB of memory. On a 2GB VM, this is too much. I followed [this tutorial](https://prahladyeri.com/blog/2017/09/how-to-trim-your-new-ubuntu-installation-of-extra-fat-and-make-it-faster.html) to disable these processes and free up RAM. It's old (2017) but it still works for Ubuntu 18 (released in 2018).
