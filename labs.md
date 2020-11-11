@@ -2018,8 +2018,15 @@ The above should all read about 0,0,0 since the robot was facing in the positive
 Figure 1. The robot believes it's in one corner but actually it's in another (real position about 0,0).
 
 
-However, the robot's turn radius seemed to interfere with its ability to accurately measure the distance from walls. In the mapping lab, I compensated for the turn radius since it was consistent and small. I'm not sure how to do that in this lab since the readings directly factor into the Bayes filter. I also can't make the robot spin in place perfectly, because that would require spinning too fast. So I allowed the robot to "swing turn", realizing this would make it think it was too close to the wall.
+The robot's turn radius seemed to interfere with its ability to accurately measure the distance from walls. In the mapping lab, I compensated for the turn radius since it was consistent and small. I'm not sure how to do that in this lab since the readings directly factor into the Bayes filter. I also can't make the robot spin in place perfectly, because that would require spinning too fast. So I allowed the robot to "swing turn", realizing this would make it think it was too close to the wall.
 
+This wasn't a huge problem. Executing the 0th update step, and the first prediction step and the first update step worked, though slowly due to disconnections and reconnections:
+
+<video width="600" controls><source src="Lab9/Videos/OneStep.mp4" type="video/mp4"></video>
+
+Figure 2 shows the results of this run:
+
+![](Lab9/Images/Screenshot from 2020-11-11 08-39-59.png)
 
 Figure 2. The robot was pretty much right, but it thought it was too close to the wall.
 
@@ -2512,9 +2519,5 @@ def move_robot(linSpeed, angSpeed, t):
     
     return curr_odom, prev_odom
 ```
-
-Executing the 0th update step, and the first prediction step and the first update step worked, though slowly due to disconnections and reconnections:
-
-<video width="600" controls><source src="Lab9/Videos/OneStep.mp4" type="video/mp4"></video>
 
 To see the rest of my code and test scripts, see the [GitHub folder](https://github.com/kreismit/ECE4960/tree/master/Lab9).
