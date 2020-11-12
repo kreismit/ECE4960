@@ -1877,6 +1877,8 @@ Downloaded and extracted the [lab 9 base code](https://cornell.box.com/s/ocqu1o5
 1. Init only: one update step and no movement or prediction step.
 2. Init and one step: update, move, predict, and update again.
 
+Started the robot at approximately (x,y,θ) = (0,0,0) in the map frame each time to test the reliability of the Bayes filter.
+
 ## Results
 
 I used test scripts like the following to debug my code:
@@ -1898,12 +1900,12 @@ print(readings)
 
 #print(commander.returnPose())
 
-#commander.move(0, 100, 1)#!/usr/bin/python3
+#commander.move(0, 100, 1)
 ```
         artemis@artemis-VirtualBox:~/Shared/ECE4960/Lab9$ ./test.py 
     [(1.0, 656.0), (21.0, 736.0), (41.0, 1245.0), (61.0, 1889.0), (81.0, 0.0), (101.0, 0.0), (121.0, 1365.0), (141.0, 1801.0), (162.0, 1106.0), (182.0, 874.0), (201.0, 730.0), (221.0, 1251.0), (241.0, 1395.0), (261.0, 526.0), (281.0, 1512.0), (301.0, 894.0), (321.0, 643.0), (341.0, 577.0)]
 
-I struggled for a long time to call the Bluetooth `asyncio`-based code from a procedural external function; of great help were the [`asyncio` documentation](https://docs.python.org/3/library/asyncio.html) and [Dan's cheat sheet on `asyncio`.](https://cheat.readthedocs.io/en/latest/python/asyncio.html) When I made it work, I tested it in a terminal window (not in a Jupyter notebook); running it in the Jupyter notebook gave error messages like `RuntimeError: This event loop is already running`. The event loop which was running was that of iPython, which powers the Jupyter Notebook. I could not start a new event loop from a running event loop in iPython, so I ran the code in a terminal window for the rest of the lab. Below were the results of the first "successful" run.
+I struggled for a long time to call the Bluetooth `asyncio`-based code from a procedural external function; of great help were the [`asyncio` documentation](https://docs.python.org/3/library/asyncio.html) and [Dan's cheat sheet on `asyncio`.](https://cheat.readthedocs.io/en/latest/python/asyncio.html) When I made it work, I tested it in a terminal window (not in a Jupyter notebook); running it in the Jupyter notebook gave error messages like `RuntimeError: This event loop is already running`. The event loop which was running was that of IPython, which powers the Jupyter Notebook. I could not start a new event loop from a running event loop in IPython, so I ran the code in a terminal window for the rest of the lab. Below were the results of the first "successful" run.
 
 ```
 artemis@artemis-VirtualBox:~/Shared/ECE4960/Lab9$ ./realRobot.py
@@ -2097,20 +2099,25 @@ aCX = 10*(aX-aXCal);                               // acceleration, calibrated b
     Y = Y + v*sin(yaw*deg2rad)*dt;
 ```
 
-2.. Stopping integration when the robot is stopped.
+2.. Allowing integration only while the velocity is moving, and then limiting the velocity to the robot's maximum possible speed.
 
 ```c++
   if(pid){ // As long as we're running the controller,
-  ...
+    ...                                                                         */
     if (r[0] !=0){ // If a nonzero linear velocity is requested,
-    ...
+      ...
+      if (v > maxSpeed) // Sanity check on velocity reading - avoid quadratic error integration
+        v = maxSpeed;
+      else if (v < -maxSpeed)
+        v = -maxSpeed;
+      else
+        v = v + aCX*dt; // If robot is moving (with PID), integrate to get velocity
     }
     else{ // spinning in place; ignore linear velocity
-      for(int i=0; i<2; i++){
-        power[i] = output[1] + 127; // forward on both sides, and the bot spins CCW
-      }
-      v = 0;   // and reset odometry velocity reading
+      ...
+      v = 0; // linear velocity assumed zero
     }
+    ...
   }
   else{ // controller isn't running; motors are stopped
     // and reset odometry velocity reading
@@ -2240,7 +2247,11 @@ void loop(){
         // Proportional gain is the multiplier (H) for the reference input.
         power[i] = sign*kp[0]*r[0] + output[1] + 127; // flip x output as appropriate
       }
-      if (abs(v) < maxSpeed) // Sanity check on velocity reading - avoid quadratic error integration
+      if (v > maxSpeed) // Sanity check on velocity reading - avoid quadratic error integration
+        v = maxSpeed;
+      else if (v < -maxSpeed)
+        v = -maxSpeed;
+      else
         v = v + aCX*dt; // If robot is moving (with PID), integrate to get velocity
     }
     else{ // spinning in place; ignore linear velocity

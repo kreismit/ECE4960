@@ -765,7 +765,11 @@ void loop()
         // Proportional gain is the multiplier (H) for the reference input.
         power[i] = sign*kp[0]*r[0] + output[1] + 127; // flip x output as appropriate
       }
-      if (abs(v) < maxSpeed) // Sanity check on velocity reading - avoid quadratic error integration
+      if (v > maxSpeed) // Sanity check on velocity reading - avoid quadratic error integration
+        v = maxSpeed;
+      else if (v < -maxSpeed)
+        v = -maxSpeed;
+      else
         v = v + aCX*dt; // If robot is moving (with PID), integrate to get velocity
     }
     else{ // spinning in place; ignore linear velocity
