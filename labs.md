@@ -1903,7 +1903,7 @@ print(readings)
         artemis@artemis-VirtualBox:~/Shared/ECE4960/Lab9$ ./test.py 
     [(1.0, 656.0), (21.0, 736.0), (41.0, 1245.0), (61.0, 1889.0), (81.0, 0.0), (101.0, 0.0), (121.0, 1365.0), (141.0, 1801.0), (162.0, 1106.0), (182.0, 874.0), (201.0, 730.0), (221.0, 1251.0), (241.0, 1395.0), (261.0, 526.0), (281.0, 1512.0), (301.0, 894.0), (321.0, 643.0), (341.0, 577.0)]
 
-I struggled for a long time to call the Bluetooth `asyncio`-based code from a procedural external function; of great help were the [`asyncio` documentation](https://docs.python.org/3/library/asyncio.html) and [Dan's cheat sheet on `asyncio`.](https://cheat.readthedocs.io/en/latest/python/asyncio.html) When I made it work, I tested it in a terminal window (not in a Jupyter notebook); running it in the Jupyter notebook gave error messages like `RuntimeError: This event loop is already running`. The event loop which was running was that of `iPython`, which powers the Jupyter Notebook. I could not start a new event loop from a running event loop in `iPython`, so I ran the code in a terminal window for the rest of the lab. Below were the results of the first "successful" run.
+I struggled for a long time to call the Bluetooth `asyncio`-based code from a procedural external function; of great help were the [`asyncio` documentation](https://docs.python.org/3/library/asyncio.html) and [Dan's cheat sheet on `asyncio`.](https://cheat.readthedocs.io/en/latest/python/asyncio.html) When I made it work, I tested it in a terminal window (not in a Jupyter notebook); running it in the Jupyter notebook gave error messages like `RuntimeError: This event loop is already running`. The event loop which was running was that of iPython, which powers the Jupyter Notebook. I could not start a new event loop from a running event loop in iPython, so I ran the code in a terminal window for the rest of the lab. Below were the results of the first "successful" run.
 
 ```
 artemis@artemis-VirtualBox:~/Shared/ECE4960/Lab9$ ./realRobot.py
@@ -2122,14 +2122,14 @@ Also note that `pid` is initialized as `false`.
 
 Planned improvements, in order of priority:
 
-* Implementing a low-pass filter on all IMU readings, not only those going into the PID controller (in C).
-* Tuning the low-pass filter.
+* ~~Implementing a low-pass filter on all IMU readings, not only those going into the PID controller (in C).~~
+* ~~Tuning the low-pass filter.~~
 * Rewriting my code to maintain a connection with the robot rather than dropping it after each action (in Python).
 * Factoring magnetometer data into the yaw reading to limit drift (in C).
 
 ### More Implementation Details
 
-Below is my entire code to make the Artemis handle `SET_VEL` and other PID-related requests:
+Below is my entire code to make the Artemis handle `SET_VEL` and other PID-related requests. Note the implementation of a FLIPPED macro which allowed tests to be run with the robot upside-down for better sensor positioning:
 
 ```c++
 void loop(){
@@ -2224,9 +2224,9 @@ void loop(){
         inte[i] = -127;
       output[i] = kp[i]*e[i]+ki[i]*inte[i]+kd[i]*(de/dt);   // calculate output
     }
-//    #ifdef SERIAL_PID
-//      Serial.printf("P = %3.1f, I = %3.1f, D = %3.1f\n",kp[0]*e[0], ki[0]*inte[0], kd[0]*((e[0]-eLast[0])/dt));
-//    #endif
+    #ifdef SERIAL_PID
+      Serial.printf("P = %3.1f, I = %3.1f, D = %3.1f\n",kp[1]*e[1], ki[1]*inte[1], kd[1]*((e[1]-eLast[1])/dt));
+    #endif
     /* Remember: clockwise is direction 1. 
        Right goes full power forward for 255 and backward for 0.
        Left goes full power backward for 255 and forward for 0.
@@ -2240,12 +2240,14 @@ void loop(){
         // Proportional gain is the multiplier (H) for the reference input.
         power[i] = sign*kp[0]*r[0] + output[1] + 127; // flip x output as appropriate
       }
+      if (abs(v) < maxSpeed) // Sanity check on velocity reading - avoid quadratic error integration
+        v = v + aCX*dt; // If robot is moving (with PID), integrate to get velocity
     }
     else{ // spinning in place; ignore linear velocity
       for(int i=0; i<2; i++){
         power[i] = output[1] + 127; // forward on both sides, and the bot spins CCW
       }
-      v = 0;   // and reset odometry velocity reading
+      v = 0; // linear velocity assumed zero
     }
     for(int i=0; i<2; i++){    // update motor powers
       if (power[i] > 255)
@@ -2261,6 +2263,14 @@ void loop(){
     // and reset odometry velocity reading
     v = 0;
   }
+  // Odometry with accelerometer
+  X = X + v*cos(yaw*deg2rad)*dt;    // Integrate again (in polar coordinates) to get position.
+  Y = Y + v*sin(yaw*deg2rad)*dt;
+  // Controlled loop time rather than simple delay
+  dtPre = 0.001*(micros()-tLast); // loop time thus far, milliseconds
+  if (dtPre < tWait) // if we haven't yet waited tWait ms
+    delay(tWait-dtPre); // regardless of what else runs, delay a bit before the next loop iteration
+} //END LOOP
 ```
 
 The odometry data is always streaming to the computer over Bluetooth as long as `GET_ODOM` is the command signal. The odometry data actually includes a ToF reading as well, so only one type of packet is needed. I chose not to save up all the observation loop readings on the robot since the reliability of Bluetooth commmunication was not great according to my tests. Instead, I used Python code to command the robot to spin, send back odometry and ToF data, and then stop spinning. Since the data was always streaming to the computer, the computer predictably got more than 18 ToF readings, with their associated headings; then, the Python code determined which ToF readings to keep based on the robot's heading when it took them.
@@ -2531,5 +2541,66 @@ def move_robot(linSpeed, angSpeed, t):
     
     return curr_odom, prev_odom
 ```
+
+### After Fixes
+
+The low-pass filter did not help much with odometry error, but I was able to code in sanity checks for velocity: it may not be greater than the robot's max speed, and it should not be nonzero before the robot starts moving. These reduced the error to about 1/20 what it was before (though the errors are still larger than the robot's actual movement!)
+
+    artemis@artemis-VirtualBox:~/Shared/ECE4960/Lab9$ ./realRobot.py
+    Using python version: 3.6.9 (default, Oct  8 2020, 12:12:24) 
+    [GCC 8.4.0] 
+
+    Initializing Node
+    Initializing Real Robot
+    Initializing beliefs with a Uniform Distribution
+    Uniform Belief with each cell value:  0.00017806267806267807
+     | Precaching Views...
+     | Precaching Time:  27.30132031440735
+    Initializing beliefs with a Uniform Distribution
+    Uniform Belief with each cell value:  0.00017806267806267807
+    Update Step
+         | Update Time:  0.018919944763183594
+
+    ---------- UPDATE STATS -----------
+    GT index      :  (-61, -443, 13)
+    Bel index     :  (8, 1, 16) with prob =  0.9999999
+    Bel_bar prob at index =  0.00017806267806267807
+
+    GT     : (-13.514, -91.216, -279.550)
+    Belief   : (1.300, 0.000, 150.000)
+    POS ERROR : (-14.814, -91.216, -429.550)
+    ---------- UPDATE STATS -----------
+    Prediction Step
+    Uniform Belief with each cell value:  2.0030814916145253e-91
+         | Prediction Time:  0.2954094409942627
+
+    ---------- PREDICTION STATS -----------
+    GT index            :  (436, -604, 17)
+    Prior Bel index     :  (11, 21, 4) with prob =  0.1415282
+    POS ERROR      : (84.241, -127.541, -467.050)
+    Service call failed: service [/plot_prob_dist] responded with an error: b'error processing request: cannot reshape array of size 312 into shape (20,20)'
+    ---------- PREDICTION STATS -----------
+    Update Step
+         | Update Time:  0.005780935287475586
+
+    ---------- UPDATE STATS -----------
+    GT index      :  (599, -704, 17)
+    Bel index     :  (1, 12, 9) with prob =  1.0
+    Bel_bar prob at index =  3.2651845573609325e-21
+
+    GT     : (118.677, -143.545, -917.618)
+    Belief   : (-0.100, 2.200, 10.000)
+    POS ERROR : (118.777, -145.745, -927.618)
+    ---------- UPDATE STATS -----------
+
+Now, the probabilities were a bit more sensible (though still very small). For the second point, since the battery was too low to spin the robot at 30°/sec, I manually rotated the robot in place and got *much* better Bayes filter results: not only did the robot determine which corner it was in, but its location exactly corresponded to the real location. However, the plotter is still expecting a 20x20 array, as the `Service call failed` message above shows.
+
+![](Lab9/Images/WithCrazyOdometry.png)
+
+Figure 3. The odometry error is so much better that you can now see the map on the plot!
+
+![](Lab9/Images/MapInView.png)
+
+Figure 4. The robot was wrong the first time, but the second time, when I spun it perfectly in place, it was right!
 
 To see the rest of my code and test scripts, see the [GitHub folder](https://github.com/kreismit/ECE4960/tree/master/Lab9).

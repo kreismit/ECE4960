@@ -35,7 +35,7 @@ SFEVL53L1X TOF;  // Create a VL53L1X object. Used to get data from the ToF.
 #define MAXREPLY 100
 //#define SERIAL_DEBUG    // Uncomment this to enable general serial debugging.
 //#define SERIAL_TOF      // Uncomment this to print ToF values to serial.
-//#define SERIAL_PID      // Uncomment this to print PID values to serial.
+#define SERIAL_PID      // Uncomment this to print PID values to serial.
 #define SERIAL_PORT Serial  // formerly for SparkFun library purposes
 #define FLIPPED 0         // 0 if curved side up; 1 if flat side up
 
@@ -53,16 +53,20 @@ float omX, omY, omZ;        // Rotation rates about X, Y, and Z, as measured by 
 float thX, thY, thZ;        // Angles about X, Y, and Z, as calculated by gyro (deg)
 float omXCal = 0, omYCal = 0, omZCal = 0; //Calibration offsets for omX, omY, and omZ
 float aX, aY, aZ, a;        // Acceleration components in X,Y,Z; and then total accel.
-float aCX, aCY, aCZ;           // Accelerometer readings (compensated) along X, Y, Z
+float aXLast, aYLast, aZLast;// previous acceleration components in X,Y,Z
+float aCX, aCY, aCZ;        // Accelerometer readings (compensated) along X, Y, Z
 float aXCal = 0, aYCal = 0, aZCal = 0; // Calibration offsets for aX, aY, aZ
 float v = 0, X = 0, Y = 0;  // velocity and positions for odometry
 float mTotal;               // total in-plane magnetometer reading
 int mCount = 0;             // count the number of magnetometer readings for averaging
 float alpha = 0.3;          // Complementary filter parameter
+float alpha2 = 0.1;         // First-order lag filter (LPF) parameter
 uint32_t tNow, tLast;       // current and previous times (microseconds)
 float dt;                   // change in time (sec)
+float dtPre;                // change in time (ms) during loop calculation - for loop timing
 int tWait = 10;             // Milliseconds to wait between each data update
 float calTime = 5;          // how many seconds to calibrate
+int maxSpeed = 4;           // approximate max speed of robot in m/s
 
 // For communicating via Bluetooth...
 
@@ -128,7 +132,7 @@ void setup()
   // Initialize PID constants
   e[0] = 0; e[1] = 0;
   inte[0] = 0; inte[1] = 0;
-  alphaE[0] = 0.1; alphaE[1] = 0.5; // lag filter parameters - tweak me!
+  alphaE[0] = 0.5; alphaE[1] = 1; // lag filter parameters for PID: tweak me!
   Serial.begin(115200);
   
   #ifdef AM_DEBUG_PRINTF
@@ -220,16 +224,23 @@ void setup()
   int tCal = calTime*1000000;       // 1 sec = 1000000 microseconds
   float thXCal = 0, thYCal = 0, thZCal = 0; // angles to measure during calibration
   tNow = micros();
+  aX = IMU.accX(); aY = IMU.accY(); aZ = IMU.accZ(); // initialize XL readings
+  aXLast = aX; aYLast = aY; aZLast = aZ; // initialize "previous" numbers
   int tStartCal = tNow;             // starting calibration now!
   while(tNow-tStartCal < tCal){     // run for tCal microseconds (plus one loop)
     if( IMU.dataReady() ){
       tLast = tNow;                   // what was new has grown old
+      aXLast = aX; aYLast = aY; aZLast = aZ;
+      
       delay(tWait);
+      
       IMU.getAGMT();                // The values are only updated when you call 'getAGMT'
       tNow = micros();                // update current time
       dt = (float) (tNow-tLast)*0.000001; // calculate change in time in seconds
       omX = IMU.gyrX(); omY = IMU.gyrY(); omZ = IMU.gyrZ(); // angular velocities about X, Y, & Z
-      aX = IMU.accX(); aY = IMU.accY(); aZ = IMU.accZ();    // accelerations in X, Y, & Z
+      aX = alpha2*IMU.accX()+(1-alpha2)*aXLast;
+      aY = alpha2*IMU.accY()+(1-alpha2)*aYLast;
+      aZ = alpha2*IMU.accZ()+(1-alpha2)*aZLast;    // accelerations in X, Y, & Z - filtered
       thXCal = thXCal + omX*dt;                 // update rotation angles about X (roll)
       thYCal = thYCal + omY*dt;                 // Y (pitch)
       thZCal = thZCal + omZ*dt;                 // and Z (yaw)
@@ -674,16 +685,20 @@ void loop()
   if( IMU.dataReady() ){
     IMU.getAGMT();                // The values are only updated when you call 'getAGMT'
     tLast = tNow;                   // the new has grown old
+    aXLast = aX; aYLast = aY; aZLast = aZ; // initialize "previous" numbers
     tNow = micros();
     dt = (float) (tNow-tLast)*0.000001; // calculate change in time in seconds
     
-    aX = IMU.accX(); aY = IMU.accY(); aZ = IMU.accZ();
+    aX = alpha2*IMU.accX()+(1-alpha2)*aXLast;
+    aY = alpha2*IMU.accY()+(1-alpha2)*aYLast;
+    aZ = alpha2*IMU.accZ()+(1-alpha2)*aZLast;    // accelerations in X, Y, & Z - filtered
     omX = IMU.gyrX()-omXCal;          // omega's (angular velocities) about all 3 axes
     omY = IMU.gyrY()-omYCal;
     if (FLIPPED)
       omZ = omZCal-IMU.gyrZ();          // invert the gyro reading if flipped
     else
       omZ = IMU.gyrZ()-omZCal;          // not flipped; use positive reading
+    
     thX = thX + omX*dt;                 // update rotation angles about X (roll)
     thY = thY + omY*dt;                 // Y (pitch)
     thZ = thZ + omZ*dt;                 // and Z (yaw)
@@ -695,12 +710,9 @@ void loop()
     thX = roll; thY = pitch;              // overwrite any gyro drift
     yaw = thZ;                            // not doing complementary filter yet
     rollRad = roll*deg2rad; pitchRad = pitch*deg2rad;
-    // Odometry with accelerometer
     //aCX = 10*(cos(pitchRad)*(aX-aXCal)+sin(pitchRad)*(aZ-aZCal));  // acceleration, calibrated and rotated
-    aCX = 10*(aX-aXCal);                               // acceleration, calibrated but ignoring rotation
-    v = v + aCX*dt; // integrate to get velocity...
-    X = X + v*cos(yaw*deg2rad)*dt;    // and integrate again (in polar coordinates) to get position.
-    Y = Y + v*sin(yaw*deg2rad)*dt;
+    aCX = 10*(aX-aXCal);               // acceleration in m/s^2, calibrated but ignoring rotation
+    
     //Serial.printf("%4.2f,%4.2f,%4.2f\n",roll,pitch,yaw); // and print the angles to serial
     if (res_cmd->command_type==GET_ODOM){
       data32[0] = X;                   //update Bluetooth data
@@ -737,9 +749,9 @@ void loop()
         inte[i] = -127;
       output[i] = kp[i]*e[i]+ki[i]*inte[i]+kd[i]*(de/dt);   // calculate output
     }
-//    #ifdef SERIAL_PID
-//      Serial.printf("P = %3.1f, I = %3.1f, D = %3.1f\n",kp[0]*e[0], ki[0]*inte[0], kd[0]*((e[0]-eLast[0])/dt));
-//    #endif
+    #ifdef SERIAL_PID
+      Serial.printf("P = %3.1f, I = %3.1f, D = %3.1f\n",kp[1]*e[1], ki[1]*inte[1], kd[1]*((e[1]-eLast[1])/dt));
+    #endif
     /* Remember: clockwise is direction 1. 
        Right goes full power forward for 255 and backward for 0.
        Left goes full power backward for 255 and forward for 0.
@@ -753,12 +765,14 @@ void loop()
         // Proportional gain is the multiplier (H) for the reference input.
         power[i] = sign*kp[0]*r[0] + output[1] + 127; // flip x output as appropriate
       }
+      if (abs(v) < maxSpeed) // Sanity check on velocity reading - avoid quadratic error integration
+        v = v + aCX*dt; // If robot is moving (with PID), integrate to get velocity
     }
     else{ // spinning in place; ignore linear velocity
       for(int i=0; i<2; i++){
         power[i] = output[1] + 127; // forward on both sides, and the bot spins CCW
       }
-      v = 0;   // and reset odometry velocity reading
+      v = 0; // linear velocity assumed zero
     }
     for(int i=0; i<2; i++){    // update motor powers
       if (power[i] > 255)
@@ -774,5 +788,11 @@ void loop()
     // and reset odometry velocity reading
     v = 0;
   }
-  delay(tWait); // regardless of what else runs, delay a bit before the next loop iteration
+  // Odometry with accelerometer
+  X = X + v*cos(yaw*deg2rad)*dt;    // Integrate again (in polar coordinates) to get position.
+  Y = Y + v*sin(yaw*deg2rad)*dt;
+  // Controlled loop time rather than simple delay
+  dtPre = 0.001*(micros()-tLast); // loop time thus far, milliseconds
+  if (dtPre < tWait) // if we haven't yet waited tWait ms
+    delay(tWait-dtPre); // regardless of what else runs, delay a bit before the next loop iteration
 } //END LOOP

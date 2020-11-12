@@ -125,7 +125,7 @@ async def robotRun(loop, order):
         angStart = odomd[2]
         #print(angStart) # for debugging
         
-        rTh = 30 # spin at 30°/second counterclockwise (CCW = +, CW = -)
+        rTh = 60 # spin at 30°/second counterclockwise (CCW = +, CW = -)
         # Send the velocity command
         data = pack("<ff", rX, rTh)
         length = 8 # Two four-byte numbers
