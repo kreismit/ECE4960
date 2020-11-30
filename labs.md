@@ -1423,6 +1423,7 @@ The result (after some improvement from the original) looked like a snowman.
 Figure 4. Drift really makes a difference in these slow scans.
 
 Frustrated though I was that the gyro drift was so bad, I was able to manually generate a Plotter-compatible map. Here is the output from the VM Plotter:
+<h4 id="map"></h4>
 
 ![map generated with lots of help](Lab7/Images/UpdatedMap.png)
 Figure 5. Map plot generated using the robot's data with heavy reliance on the real map.
@@ -2615,3 +2616,375 @@ Figure 3. The odometry error is so much better that you can now see the map on t
 Figure 4. The robot was wrong the first time, but the second time, when I spun it perfectly in place, it was right!
 
 To see the rest of my code and test scripts, see the [GitHub folder](https://github.com/kreismit/ECE4960/tree/master/Lab9).
+
+<h1 id="L10">Lab 10</h1>
+
+## Materials
+
+Used the same materials as in [lab 6 and following](#L6)
+
+## Procedure
+
+* Downloaded the base code from [here](https://cei-lab.github.io/ECE4960/lab10.zip) and ran `setup.sh`.
+* Compared various options for path planning and navigation.
+* Rewrote robot interface code to support additional operations and to allow continuous Bluetooth control and data acquisition.
+* Ran the `lab10_generate_query.ipynb` Jupyter notebook and wrote code to generate a grid based on my map.
+* Wrote a path planner (depth-first, then A*) in Python and used it to generate paths from arbitrary starting points to arbitrary goals.
+    * Instantiated the `search` class.
+    * Generated start and end points and fed these to the path planner.
+    * Ran the path planner.
+    * Mapped the results back to the world frame.
+* TODO: wrote code to make the robot step through the planned path, assuming it started at the expected point.
+* TODO - OPTIONAL: wrote code to localize the robot, use that position as a starting point, and then plan a path to an arbitrary goal and go there.
+
+## Results and Conclusions
+
+### Decisions and Justification
+
+After some [brainstorming](https://github.com/kreismit/ECE4960/tree/master/Lab10/Lab10Brainstorming.md), chose to use the Bayes filter and global path planning for the following reasons:
+
+* Wall-following is just too slow. Global path planning allows an efficient solution.
+* I only have one ToF sensor.
+    * The proximity sensor responds differently to different types of surfaces.
+    * Using the proximity sensor for wall-following or for obstacle avoidance could be problematic.
+* I want to learn and understand global path planning.
+
+Chose to write my own path planner because:
+
+* Path planner libraries (such as [ROS Global Planner](https://wiki.ros.org/global_planner)) required learning a whole new interface.
+    * This could be more painful that coding one myself.
+    * ROS is already old (ROS2 supersedes it) and similarly, knowledge gained by learning other libraries could be useless later.
+* I want to better understand global path planning.
+
+Due to the lack of good straight-line readings, chose to use the ToF to measure distance traveled when moving in a straight line. Since the [map](#map) is almost perfectly rectilinear, this could work well as long as the robot only makes right-angle turns. A right-angle-only navigation system has the additional advantage of speed: since the angular configuration space has only four possible positions (rather than 18) the speed increases by a factor of 9/2 = *4.5x*. Indeed, the finish path planner consistently found an optimal (or near-optimal) path in [less than a tenth of a second](labs.html#pathplanningresults).
+
+### New Interface Code
+
+Followed Alex Coy's videos on [Bluetooth](https://youtu.be/OfK526RfFqs) and [localization](https://www.youtube.com/watch?v=H80BFbrwnjg) in Jupyter notebooks. Experienced issues with my setup due to odd implementation details; found that the exact names of classes mattered. My implementation looks very much like his:
+
+```python3
+theRobotHolder = robotHolder()
+
+async def robotRun(loop):
+    # simpleHandler() goes here
+    # code...
+    async def stayConnected():
+        while theRobot.isRunning:
+            if(theRobot.availMessage()):    # keep checking for BT messages
+                print(f"BTDebug: {theRobot.getMessage()}")
+            await asyncio.sleep(0.1) 
+    
+    # You can put a UUID (MacOS) or MAC address (Windows and Linux)
+    # in Settings["Cached"].
+    if (not Settings["cached"]):
+        theRobot_bt = await getRobot()
+
+    else:
+        theRobot_bt = type("", (), {})()
+        theRobot_bt.address = Settings["cached"]
+    # print(theRobot_bt.address)
+    while (not theRobot_bt):
+        print("Robot not found")
+        theRobot_bt = await getRobot()
+
+    if (not Settings["cached"]):
+        print(f"New robot found. Must cache \
+            {theRobot_bt.address} manually in settings.py")
+
+    async with BleakClient(theRobot_bt.address, loop=loop, device=Settings["adapter"]) as client:
+        await client.is_connected()
+        theRobot = Robot(client) # instantiate Robot class (always uses Bleak)
+        theRobotHolder.setRobot(theRobot) # fit Robot object into robotHolder
+        # Initialize class variables: sensor reading and motor value tuples
+        theRobot.odomd = (0,0,0,0) # x position, y position, yaw angle, ToF (floats)
+        theRobot.veld = (0,0,0,0)  # x vel., y vel., angular vel., ToF (floats)
+
+        theRobot.isRunning = True # keeps connection alive while it's true
+
+        await client.start_notify(Descriptors["TX_CHAR_UUID"].value,
+                                  simpleHandler)
+        
+        await asyncio.gather(stayConnected())
+```
+
+This enabled me to run `await theRobot.function()` for arbitrary class functions in the Jupyter notebook:
+
+```python3
+from commander import *
+
+loop = asyncio.get_event_loop()
+try:
+    loop.run_until_complete(robotRun(loop))
+except RuntimeError:
+    asyncio.gather(robotRun(loop))
+
+theRobot = robotHolder.getRobot()
+```
+
+I then needed to change most of my functions to be asynchronous. The main change I made was to `perform_observation_loop()`:
+
+```python3
+async def perform_observation_loop(self, observationCount=18, rotVel=30):
+        """ (Instructions here.)
+        Args:
+            observation_count (integer): Number of observations to record
+            rot_vel (integer): Rotation speed (in degrees/s)
+
+        Returns:
+            obs_range_data (ndarray): 1D array of 'float' type containing observation range data
+        """
+        await theRobot.getOdom()
+        odomd = theRobot.odomd
+        while odomd[2] == 0:   # wait for values to come
+            await asyncio.sleep(0.1)
+            #print("Waiting for angle...") # for debugging
+        angStart = odomd[2]
+        #print(angStart) # for debugging
+        odomList = []   # array of odometry readings and angles
+        rTh = 30 # spin at 30°/second counterclockwise (CCW = +, CW = -)
+        await theRobot.setVel(rTh,0)
+        ang = 0
+        while ang < 360:       # Run until the robot has made a full turn
+            ang = abs(odomd[2] - angStart)   # update relative turn amount (strictly positive)
+            odomList.append((ang,odomd[3]))  # save the RELATIVE angle and range to the list
+            #print(ang) # for debugging
+            await asyncio.sleep(0.02)
+        
+        await theRobot.setVel(0,0) # Stop the robot
+        length = len(odomList)      # number of entries in list
+        out = []                    # output list
+    
+        for i in range(length):     # loop through the entire list after spinning
+            currAngle = round(odomList[i][0])   # current angle (integer)
+            if (currAngle%20 == 0) and (currAngle/20 == len(out)-1):
+                # if the angle is a multiple of 20° AND we haven't already checked it
+                #out.append((currAngle,odomList[i])) # for debugging
+                out.append(odomList[i][1]/1000)  # save the angle and the range IN M
+            elif currAngle/20 > (len(out)): # if we skipped one
+                j = i
+                angleJ = round(odomList[j][0])
+                while angleJ < (len(out)+1):
+                    j = j - 1                # average two closest angles
+                    angleJ = abs(round(odomList[j][0]))
+                r = 0.5*odomList[i][1]+0.5*odomList[j][1]
+                th = 0.5*currAngle + 0.5*angleJ
+                #out.append((th,r)) # debugging
+                out.append(r/1000) # /1000 since measurements are in mm and we
+        if len(out)==0:
+            print("Warning: got zero observation readings.")
+        else:
+            out.insert(0, out.pop(-1))
+        return np.array(out)
+```
+
+I had to make some changes to the robot's Arduino code as well. Since I wasn't able to achieve accurate odometry readings, closed-loop linear position control was out of the question. I changed the code to use open-loop control for forward/back positioning and PID control for angular positioning:
+
+```c++
+if (r[1] !=0){ // If a nonzero linear velocity is requested,
+      for(int i=0; i<2; i++){ // combine outputs from linear and angular PID controllers
+        int sign = pow(-1, (float) i+FLIPPED); // -1^i so 1 for i=0; -1 for i=1
+        // I couldn't make PID control with the accelerometer work, so I'm using open-loop.
+        // Proportional gain is the multiplier (H) for the reference input.
+        power[i] = sign*(127*r[1] + offsetFB/2) + 127 + offsetLR/2 + output;
+        Serial.printf("\nSetting motor %d to %d\n",i,power[i]);
+      }
+      if (v > maxSpeed) // Sanity check on velocity reading - avoid quadratic error integration
+        v = maxSpeed;
+      else if (v < -maxSpeed)
+        v = -maxSpeed;
+      else
+        v = v + aCX*dt; // If robot is moving (with PID), integrate to get velocity
+    }
+    else{ // spinning in place; ignore linear velocity
+      // but still use open-loop constants to attempt to spin in place
+      power[right] = output + 127 - offsetFB/2; // forward on both sides, and the bot spins CCW
+      power[left] = (float) calib*(output + 127) + offsetLR + offsetFB/2;
+      v = 0; // linear velocity assumed zero
+    }
+    for(int i=0; i<2; i++){    // update motor powers
+      if (power[i] > 255)
+        power[i] = 255;
+      else if(power[i] < 0)
+        power[i] = 0;
+      else
+        power[i] = power[i];
+      Serial.printf("\nSetting motor %d to %d\n",i,power[i]);
+      scmd.writeRegister(SCMD_MA_DRIVE+i,power[i]);  // the driver accepts a value 0-255
+    }
+  }
+  else{ // controller isn't running; motors are stopped
+    // and reset odometry velocity reading
+    v = 0;
+  }
+```
+
+I was able to achieve consistent near-zero turn radii by coating the rear wheels of the robot with Scotch tape (which is more slippery than other kinds of tape.)
+
+TODO: demonstrate with video
+
+### Path planning
+
+Generated a grid from a map automatically using the following code:
+
+```python3
+# Generate a grid of the right size; all unoccupied cells are zero...
+grid = np.zeros((cellsY+1, cellsX), dtype=np.uint8) # planner needs 8-bit integers
+# (maybe it's my choice of bounding box, but the y dimension gets chopped off, so it needs 1 more.)
+# ... and the the occupied cells are 1
+# (negative numbers tend to mess this up. So, the code shifts the coordinates until they are positive.)
+minX = min(start_points[:,0]) # and note that the two arrays contain all the same points,
+minY = min(start_points[:,1]) # just in different orders
+for i in range(np.shape(start_points)[0]):
+    xStart = start_points[i,0] - minX
+    yStart = start_points[i,1] - minY
+    xEnd = end_points[i,0] - minX
+    yEnd = end_points[i,1] - minY
+    # interpolate with half-cell resolution so no cells are skipped
+    numInterpPoints = round(max(abs((xEnd-xStart)/0.1), abs((yEnd-yStart)/0.1)))
+    #print(numInterpPoints)
+    if (numInterpPoints > 0): # sometimes there will be a duplicate point
+        stepX = (xEnd-xStart)/numInterpPoints
+        stepY = (yEnd-yStart)/numInterpPoints
+        #print("step: {},{}".format(stepX, stepY))
+        for s in range(numInterpPoints):
+            x = s*stepX + xStart
+            y = s*stepY + yStart
+            #print("{},{}".format(x,y))
+            grid[int(y/0.2),int(x/0.2)] = 1
+    else:
+        grid[int(yStart/0.2),int(xStart/0.2)] = 1
+grid = np.flipud(grid) # by default, rows are numbered top-to-bottom
+```
+
+Wrote the following code (after many tries) to perform an A* search:
+
+```python3
+class search:
+# init function
+
+# neighbors function
+
+# frontier function which calls neighbors and cost functions
+
+    def astar(self, start, goal):
+        # Depth-first search (with cost)
+        # Inputs: start: 1-D numpy array of 2 or 3 coordinates
+        #         and goal: 1-D numpy array of 2 or 3 coordinates
+        # Output: solution: list of nodes leading to goal (start to end)
+        
+        if len(start) is 2:         # if the input is just [x,y] or (x,y)
+            start = list(start)     # make sure it's mutable
+            start.append(0)         # add an angle coordinate
+            start = tuple(start)    # and make it immutable to avoid problems
+        if len(goal) is 2:          # if the input is just [x,y] or (x,y)
+            goal = list(goal)       # make sure it's mutable
+            goal.append(0)          # add an angle coordinate
+            goal = tuple(goal)      # and make it immutable to avoid problems
+
+        here = [start]              # We are at the starting point.
+        startTime = time.time()
+        #print("Starting at ({},{},{})\n".format(*here[0]))
+        next = self.frontier(here)  # Take the first look around.
+        # next is the queue of nodes to check next.
+        #print("Trying these cells first: " + str(next) + "\n")
+        bestPriority = 1000
+        for i in next: # i is a set of coordinates in list next
+            if i[:] == goal[:]: # we're done!
+                print("Found a solution after {0:1.3f} seconds\n".format(time.time()-startTime))
+                self.solution = self.genPath(start,goal)
+            priority = 2*self.heuristic(i,goal) \
+                     + self.cost[i[0],i[1],i[2]]
+            if (priority < bestPriority):   # better than the best so far!
+                bestPriority = priority     # this is the new best
+                next.insert(0,next.pop(next.index(i)))  # move it to the front
+        #print("After sorting: " + str(next) + "\n")
+        
+        #while not not(next) and self.solution is None:
+        while not not(next):
+        # keep searching until soln found OR the frontier is empty
+            
+            #print("Trying these cells next: " + str(here) + "\n")
+            # Loosely sort in order of best heuristic and cost.
+            # In the same loop, mark "came from" cells.
+            bestPriority = 1000
+            for i in next: # i is a set of coordinates in list next
+                if i[:] == goal[:]: # we're done!
+                    print("Found a solution after {0:1.3f} seconds\n".format(time.time()-startTime))
+                    solution = self.genPath(start,goal)
+                    solution.reverse()
+                    return solution
+                priority = 2*self.heuristic(i,goal) \
+                         + self.cost[i[0],i[1],i[2]]
+                if (priority < bestPriority):   # better than the best so far!
+                    bestPriority = priority     # this is the new best
+                    next.insert(0,next.pop(next.index(i)))  # move it to the front
+            #print("After sorting: " + str(next) + "\n")
+            here = next
+            next = self.frontier(here) # generate next queue
+
+# cost function
+
+# heuristic function
+```
+Also wrote a DFS (Depth-First Search) algorithm in the process. Implemented the functions `self.frontier`, `self.heuristic`, and others. See [GraphSearch.py](https://github.com/kreismit/ECE4960/tree/master/Lab10/GraphSearch.py) for the full code.
+
+Found [the Red Blob Games A* page](https://www.redblobgames.com/pathfinding/a-star/introduction.html) (linked in the lecture nodes) very useful.
+
+searcher = search(grid)
+
+Ran the path planner and plotted the results using this code:
+
+```python3
+# Generate 10 different start and goal cells based on the occupancy grid encoded in the **grid** variable. 
+# Each plot showcases the obstacles in white, while the start and goals cells are depicted in red and green, respectively.
+for i in range(0,1):
+    # Generate a start and goal pair
+    x = pq.generate(plot=True)
+    solution = searcher.astar(x[0], x[1])
+    print("-----------------")
+if solution is not None:
+    for s in solution:
+        # x's are columns and y's are rows, backwards but right-side-up
+        xWorld = list(loc.mapper.from_map(*s)[:2])
+        xWorld.reverse()
+        xWorld[0] = minX + xWorld[0]
+        xWorld[1] = maxY + minY - xWorld[1]
+        loc.plotter.plot_point(*xWorld,ODOM)
+    xWorld = [] # initialize world coordinate array
+    for k in range(2): # get x,y coords. of start and end points
+        xWorld.append(list(loc.mapper.from_map(*x[k],0))[:2])
+        xWorld[k].reverse()
+        xWorld[k][0] = minX + xWorld[k][0]
+        xWorld[k][1] = maxY + minY - xWorld[k][1]
+    loc.plotter.plot_point(*xWorld[0],BEL)
+    loc.plotter.plot_point(*xWorld[1],GT)
+```
+
+<h4 id="pathplanningresults"></h4>
+
+With depth-first search algorithms (`searcher.dfs()` instead of `searcher.astar`) the results were wonky. Worse, I didn't implement the frontier "been-here-before" correctly, so it retraced its steps. Lastly, the DFS used recursion, and each branch often contained a solution, so the solutions plotted on top of each other.
+
+![](Lab10/Images/FirstSearchBad.png)
+
+Figure 1. Bad search algorithm.
+
+However, after I understood `A*` and used loops instead of recursion, the planner completed with near-optimal solutions.
+
+![](Lab10/Images/GoodPath.png)
+
+Figure 2. Good search algorithm (`A*`).
+
+It was predictable, even for more complex paths:
+
+![](Lab10/Images/GoodPath3.png)
+
+Figure 3. `A*` algorithm completes a more complex path.
+
+And it was consistently fast.
+
+![](Lab10/Images/FastSolution.png)
+
+Figure 4. An average time for solution: some faster, some slower.
+
+However, the starting-point generator sometimes picked points inside the counter (the closed area on the right) so there was no way to access the end point in the room.
+
