@@ -732,18 +732,18 @@ void loop()
   }
   // Handle PID command
   if(pid){ // As long as we're running the controller,
-      eLast = e;  // Update error (but don't update time - this is already done in the gyro section)
-      //tLast = t;
-      //t = micros();
-      //dt = (t - tLast)*0.000001;
-      e = alphaE*(r[0]-omZ)+(1-alphaE)*eLast; // lag filter on error
-      inte = inte + e*dt;                          // integral term
-      de = e - eLast;                                 // numerator of deriv. term
-      if (inte > 127)                                    // anti-windup control for integral
-        inte = 127;
-      else if (inte < -127)
-        inte = -127;
-      output = kp*e+ki*inte+kd*(de/dt);   // calculate output
+    eLast = e;  // Update error (but don't update time - this is already done in the gyro section)
+    //tLast = t;
+    //t = micros();
+    //dt = (t - tLast)*0.000001;
+    e = alphaE*(r[0]-omZ)+(1-alphaE)*eLast; // lag filter on error
+    inte = inte + e*dt;                          // integral term
+    de = e - eLast;                                 // numerator of deriv. term
+    if (inte > 127)                                    // anti-windup control for integral
+      inte = 127;
+    else if (inte < -127)
+      inte = -127;
+    output = kp*e+ki*inte+kd*(de/dt);   // calculate output
     #ifdef SERIAL_PID
       Serial.printf("P = %3.1f, I = %3.1f, D = %3.1f\n",kp*e, ki*inte, kd*((e-eLast)/dt));
     #endif
@@ -779,8 +779,8 @@ void loop()
         power[i] = 255;
       else if(power[i] < 0)
         power[i] = 0;
-      else
-        power[i] = power[i];
+      //else
+      //  power[i] = power[i];
       Serial.printf("\nSetting motor %d to %d\n",i,power[i]);
       scmd.writeRegister(SCMD_MA_DRIVE+i,power[i]);  // the driver accepts a value 0-255
     }

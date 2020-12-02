@@ -2617,6 +2617,175 @@ Figure 4. The robot was wrong the first time, but the second time, when I spun i
 
 To see the rest of my code and test scripts, see the [GitHub folder](https://github.com/kreismit/ECE4960/tree/master/Lab9).
 
+<h3 id="L9update">Update (12-01-2020)</h3>
+
+I added the line `print("Current GT    : ", current_gt)` in the `print_update_stats()` function in `robot_interface.py`. Below are the results, with hard-coded ground-truth measurements, after a few runs:
+
+```
+Using python version: 3.6.9 (default, Oct  8 2020, 12:12:24) 
+[GCC 8.4.0] 
+
+Initializing Node
+Initializing Real Robot
+Initializing beliefs with a Uniform Distribution
+Uniform Belief with each cell value:  0.00017806267806267807
+ | Precaching Views...
+ | Precaching Time:  28.38701319694519
+Initializing beliefs with a Uniform Distribution
+Uniform Belief with each cell value:  0.00017806267806267807
+Update Step
+     | Update Time:  0.004635810852050781
+
+---------- UPDATE STATS -----------
+GT index      :  (6, 13, 8)
+Current GT    :  (0.0, 0.0, 343.1861877441406)
+Bel index     :  (8, 5, 0) with prob =  0.9971769
+Bel_bar prob at index =  0.00017806267806267807
+
+GT     : (0.000, 0.000, 343.186)
+Belief   : (1.300, 0.800, -170.000)
+POS ERROR : (-1.300, -0.800, 513.186)
+---------- UPDATE STATS -----------
+Prediction Step
+Uniform Belief with each cell value:  6.63865859040986e-91
+     | Prediction Time:  0.8199536800384521
+
+---------- PREDICTION STATS -----------
+Traceback (most recent call last):
+  File "/home/artemis/.local/lib/python3.6/site-packages/bleak/backends/bluezdbus/client.py", line 153, in connect
+    ).asFuture(self.loop)
+txdbus.error.RemoteError: org.bluez.Error.Failed: Software caused connection abort
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "./realRobot.py", line 202, in <module>
+    step_bayes_filter(currOdom, prevOdom)
+  File "./realRobot.py", line 167, in step_bayes_filter
+    loc.print_prediction_stats(plot_data=True)
+  File "/home/artemis/Shared/ECE4960/Lab9/robot_interface.py", line 454, in print_prediction_stats
+    current_gt = self.robot.get_gt_pose()
+  File "./realRobot.py", line 118, in get_gt_pose
+    return self.get_pose()
+  File "./realRobot.py", line 51, in get_pose
+    return commander.returnPose()
+  File "/home/artemis/Shared/ECE4960/Lab9/commander.py", line 329, in returnPose
+    loop.run_until_complete(robotRun(loop, "pullOdom")) # and run the tasks.
+  File "/usr/lib/python3.6/asyncio/base_events.py", line 484, in run_until_complete
+    return future.result()
+  File "/home/artemis/Shared/ECE4960/Lab9/commander.py", line 206, in robotRun
+    async with BleakClient(theRobot_bt.address, loop=loop, device=Settings["adapter"]) as client:
+  File "/home/artemis/.local/lib/python3.6/site-packages/bleak/backends/client.py", line 49, in __aenter__
+    await self.connect()
+  File "/home/artemis/.local/lib/python3.6/site-packages/bleak/backends/bluezdbus/client.py", line 164, in connect
+    raise BleakError(str(e))
+bleak.exc.BleakError: org.bluez.Error.Failed: Software caused connection abort
+```
+
+```
+Using python version: 3.6.9 (default, Oct  8 2020, 12:12:24) 
+[GCC 8.4.0] 
+
+Initializing Node
+Initializing Real Robot
+Initializing beliefs with a Uniform Distribution
+Uniform Belief with each cell value:  0.00017806267806267807
+ | Precaching Views...
+ | Precaching Time:  28.03499174118042
+Initializing beliefs with a Uniform Distribution
+Uniform Belief with each cell value:  0.00017806267806267807
+Update Step
+     | Update Time:  0.033971548080444336
+
+---------- UPDATE STATS -----------
+GT index      :  (6, 13, 8)
+Current GT    :  (0.0, 0.0, 341.3060607910156)
+Bel index     :  (1, 3, 8) with prob =  0.9999672
+Bel_bar prob at index =  0.00017806267806267807
+
+GT     : (0.000, 0.000, 341.306)
+Belief   : (-0.100, 0.400, -10.000)
+POS ERROR : (0.100, -0.400, 351.306)
+---------- UPDATE STATS -----------
+Prediction Step
+Uniform Belief with each cell value:  9.322959283233761e-179
+     | Prediction Time:  0.29364705085754395
+
+---------- PREDICTION STATS -----------
+GT index            :  (-53, 71, 6)
+Prior Bel index     :  (0, 25, 4) with prob =  0.5100627
+POS ERROR      : (-11.648, 6.894, 761.684)
+Service call failed: service [/plot_prob_dist] responded with an error: b'error processing request: cannot reshape array of size 312 into shape (20,20)'
+---------- PREDICTION STATS -----------
+Update Step
+     | Update Time:  0.00471186637878418
+
+---------- UPDATE STATS -----------
+GT index      :  (-53, 71, 6)
+Current GT    :  (-11.948388872960393, 11.69437851597061, 1030.6938786506653)
+Bel index     :  (9, 4, 17) with prob =  0.6761967
+Bel_bar prob at index =  3.4085286624677227e-49
+
+GT     : (-11.948, 11.694, 1030.694)
+Belief   : (1.500, 0.600, 170.000)
+POS ERROR : (-13.448, 11.094, 860.694)
+---------- UPDATE STATS -----------
+```
+
+```
+Using python version: 3.6.9 (default, Oct  8 2020, 12:12:24) 
+[GCC 8.4.0] 
+
+Initializing Node
+Initializing Real Robot
+Initializing beliefs with a Uniform Distribution
+Uniform Belief with each cell value:  0.00017806267806267807
+ | Precaching Views...
+ | Precaching Time:  27.305506944656372
+Initializing beliefs with a Uniform Distribution
+Uniform Belief with each cell value:  0.00017806267806267807
+Update Step
+     | Update Time:  0.017717599868774414
+
+---------- UPDATE STATS -----------
+GT index      :  (6, 13, 8)
+Current GT    :  (0.0, 0.0, 359.0617980957031)
+Bel index     :  (6, 3, 13) with prob =  0.9999828
+Bel_bar prob at index =  0.00017806267806267807
+
+GT     : (0.000, 0.000, 359.062)
+Belief   : (0.900, 0.400, 90.000)
+POS ERROR : (-0.900, -0.400, 269.062)
+---------- UPDATE STATS -----------
+Prediction Step
+Uniform Belief with each cell value:  7.242846000314905e-129
+     | Prediction Time:  0.30080437660217285
+
+---------- PREDICTION STATS -----------
+GT index            :  (-119, 13, 9)
+Prior Bel index     :  (0, 25, 5) with prob =  0.7315834
+POS ERROR      : (-24.856, -4.647, 792.844)
+Service call failed: service [/plot_prob_dist] responded with an error: b'error processing request: cannot reshape array of size 312 into shape (20,20)'
+---------- PREDICTION STATS -----------
+Update Step
+     | Update Time:  0.0045473575592041016
+
+---------- UPDATE STATS -----------
+GT index      :  (-119, 13, 9)
+Current GT    :  (-25.155843523381773, 0.15341208552462435, 1088.1767808198929)
+Bel index     :  (9, 20, 7) with prob =  0.9999696
+Bel_bar prob at index =  2.2485678048850943e-33
+
+GT     : (-25.156, 0.153, 1088.177)
+Belief   : (1.500, 3.800, -30.000)
+POS ERROR : (-26.656, -3.647, 1118.177)
+---------- UPDATE STATS -----------
+```
+
+In each of these cases, the robot's belief was close to the real value in position (though sometimes not in angle.) The first two times, it began near (0,0) and drove to about (1.5,0), facing in the *+x* direction. The third time, it began near (0.5,3) and drove to about (0.3,4.5) facing in the *+y* direction.
+
+The `Service call failed` error messages occur because I had not yet rewritten the plotter code to accept different-sized arrays.
+
 <h1 id="L10">Lab 10</h1>
 
 ## Materials
@@ -2634,7 +2803,7 @@ Used the same materials as in [lab 6 and following](#L6)
     * Generated start and end points and fed these to the path planner.
     * Ran the path planner.
     * Mapped the results back to the world frame.
-* TODO: wrote code to make the robot step through the planned path, assuming it started at the expected point.
+* Wrote code to make the robot step through the planned path, assuming it started at the expected point.
 * TODO - OPTIONAL: wrote code to localize the robot, use that position as a starting point, and then plan a path to an arbitrary goal and go there.
 
 ## Results and Conclusions
@@ -2656,13 +2825,13 @@ Chose to write my own path planner because:
     * ROS is already old (ROS2 supersedes it) and similarly, knowledge gained by learning other libraries could be useless later.
 * I want to better understand global path planning.
 
-Due to the lack of good straight-line readings, chose to use the ToF to measure distance traveled when moving in a straight line. Since the [map](#map) is almost perfectly rectilinear, this could work well as long as the robot only makes right-angle turns. A right-angle-only navigation system has the additional advantage of speed: since the angular configuration space has only four possible positions (rather than 18) the speed increases by a factor of 9/2 = *4.5x*. Indeed, the finish path planner consistently found an optimal (or near-optimal) path in [less than a tenth of a second](labs.html#pathplanningresults).
+Due to the lack of good straight-line readings, chose to use the ToF to measure distance traveled when moving in a straight line. Since the [map](#map) is almost perfectly rectilinear, this could work well as long as the robot only makes right-angle turns. A right-angle-only navigation system has the additional advantage of speed: since the angular configuration space has only four possible positions (rather than 18) the speed increases by a factor of 9/2 = *4.5x*. Indeed, the finish path planner consistently found an optimal (or near-optimal) path in [less than a tenth of a second](#resultsspeed).
 
 ### New Interface Code
 
 Followed Alex Coy's videos on [Bluetooth](https://youtu.be/OfK526RfFqs) and [localization](https://www.youtube.com/watch?v=H80BFbrwnjg) in Jupyter notebooks. Experienced issues with my setup due to odd implementation details; found that the exact names of classes mattered. My implementation looks very much like his:
 
-```python3
+```python
 theRobotHolder = robotHolder()
 
 async def robotRun(loop):
@@ -2709,7 +2878,7 @@ async def robotRun(loop):
 
 This enabled me to run `await theRobot.function()` for arbitrary class functions in the Jupyter notebook:
 
-```python3
+```python
 from commander import *
 
 loop = asyncio.get_event_loop()
@@ -2723,7 +2892,7 @@ theRobot = robotHolder.getRobot()
 
 I then needed to change most of my functions to be asynchronous. The main change I made was to `perform_observation_loop()`:
 
-```python3
+```python
 async def perform_observation_loop(self, observationCount=18, rotVel=30):
         """ (Instructions here.)
         Args:
@@ -2780,7 +2949,11 @@ async def perform_observation_loop(self, observationCount=18, rotVel=30):
 I had to make some changes to the robot's Arduino code as well. Since I wasn't able to achieve accurate odometry readings, closed-loop linear position control was out of the question. I changed the code to use open-loop control for forward/back positioning and PID control for angular positioning:
 
 ```c++
-if (r[1] !=0){ // If a nonzero linear velocity is requested,
+  // Handle PID command
+  if(pid){ // As long as we're running the controller,
+    // pid code same as before...
+    output = kp*e+ki*inte+kd*(de/dt);   // calculate output
+    if (r[1] !=0){ // If a nonzero linear velocity is requested,
       for(int i=0; i<2; i++){ // combine outputs from linear and angular PID controllers
         int sign = pow(-1, (float) i+FLIPPED); // -1^i so 1 for i=0; -1 for i=1
         // I couldn't make PID control with the accelerometer work, so I'm using open-loop.
@@ -2826,7 +2999,7 @@ TODO: demonstrate with video
 
 Generated a grid from a map automatically using the following code:
 
-```python3
+```python
 # Generate a grid of the right size; all unoccupied cells are zero...
 grid = np.zeros((cellsY+1, cellsX), dtype=np.uint8) # planner needs 8-bit integers
 # (maybe it's my choice of bounding box, but the y dimension gets chopped off, so it needs 1 more.)
@@ -2858,7 +3031,7 @@ grid = np.flipud(grid) # by default, rows are numbered top-to-bottom
 
 Wrote the following code (after many tries) to perform an A* search:
 
-```python3
+```python
 class search:
 # init function
 
@@ -2934,7 +3107,7 @@ searcher = search(grid)
 
 Ran the path planner and plotted the results using this code:
 
-```python3
+```python
 # Generate 10 different start and goal cells based on the occupancy grid encoded in the **grid** variable. 
 # Each plot showcases the obstacles in white, while the start and goals cells are depicted in red and green, respectively.
 for i in range(0,1):
@@ -2966,25 +3139,165 @@ With depth-first search algorithms (`searcher.dfs()` instead of `searcher.astar`
 
 ![](Lab10/Images/FirstSearchBad.png)
 
-Figure 1. Bad search algorithm.
+Figure 1. Bad search algorithm. Yellow dot is starting point; green is ending point; and blue is path.
 
-However, after I understood `A*` and used loops instead of recursion, the planner completed with near-optimal solutions.
+
+However, after I understood A* and used loops instead of recursion, the planner completed with near-optimal solutions.
 
 ![](Lab10/Images/GoodPath.png)
 
-Figure 2. Good search algorithm (`A*`).
+Figure 2. Good search algorithm (A*). Yellow dot is starting point; green is ending point; and blue is path.
+
 
 It was predictable, even for more complex paths:
 
 ![](Lab10/Images/GoodPath3.png)
 
-Figure 3. `A*` algorithm completes a more complex path.
+Figure 3. A* algorithm completes a more complex path. Yellow dot is starting point; green is ending point; and blue is path.
 
-And it was consistently fast.
+
+<p id="resultsspeed">And it was consistently fast: the average solution time is about 0.05 seconds.</p>
 
 ![](Lab10/Images/FastSolution.png)
 
-Figure 4. An average time for solution: some faster, some slower.
+Figure 4. A relatively long solution time.
 
-However, the starting-point generator sometimes picked points inside the counter (the closed area on the right) so there was no way to access the end point in the room.
 
+However, the starting-point generator sometimes picks points inside the counter (the closed area on the right) so there was no way to access the end point in the room.
+
+### Making the Robot Follow the Path
+
+The biggest issue was bad calibration. The robot often drove in circles instead of in straight lines because the gyroscope failed to calibrate correctly.
+
+I tested each portion of the following code individually and it worked; however, it failed to produce the expected results.
+
+```python
+# Actually run the thing
+stopTime = 0.5 # time (s) to wait for the robot to come to a full stop
+loopTime = 0.1 # time (s) to wait during while loops
+drivingForward = True # bit to remember which way we've been driving
+linearThreshold = 0.1 # allowed deviation in linear positioning
+angThreshold = 2 # allowed deviation in angular positioning
+
+for i in range(0,numStartGoal):
+    if solution[i] is not None:
+        await asyncio.sleep(0.1) # put "await anything" here and IPython pukes
+        await theRobot.getOdom() # request odometry and ToF data
+        sLast = [*x[0],0] # initialize "last" position at starting point (0° heading)
+        while theRobot.odomd[3] is 0:
+            await asyncio.sleep(loopTime) # wait for ToF readings to show up
+        for s in solution[i]:
+            print("Step " + str(solution[i].index(s)) + ":\n")
+            print(s)
+            # THESE ARE INDICES and not world coordinates
+            pose = [s[1],s[0],round((9/2)*s[2]+9)] # 90° to 20° increments
+            if pose[2] > 18: # normalize the angle index
+                pose[2] = pose[2] - 18
+            elif pose[2] < 0:
+                pose[2] = pose[2] + 18
+            print("I'm about to go to pose " + str(pose))
+            expectedView = loc.mapper.get_views(*pose)[0] # view facing forward, m
+            print("When I get there, I will see " + str(expectedView)+" m\n")
+            # use 90° increments so 0° doesn't turn into +/- 10°
+            turnAngle = 90*(s[2] - sLast[2])
+            if turnAngle > 180: # normalize the turn angle
+                turnAngle = turnAngle - 360
+            elif turnAngle < -180:
+                turnAngle = turnAngle + 360
+            print("I need to turn " + str(turnAngle)+"°\n")
+            startAngle = theRobot.odomd[2]
+            error = turnAngle - (theRobot.odomd[2] - startAngle)
+            if turnAngle > 0:
+                # need to turn CCW
+                await theRobot.setVel(0,0) # stop first
+                await asyncio.sleep(stopTime)
+                while error > angThreshold: # run proportional control
+                    error = turnAngle - (theRobot.odomd[2] - startAngle)
+                    print("Heading error is " + str(error)+"°\n")
+                    print("Angle is " + str(theRobot.odomd[2])+"°\n")
+                    await theRobot.setVel(0,max(50,2*error)) # with threshold
+                    await asyncio.sleep(loopTime)
+            elif turnAngle < 0:
+                # need to turn CW
+                await theRobot.setVel(0,0)
+                await asyncio.sleep(stopTime)
+                while -error > angThreshold: # run proportional control
+                    error = turnAngle - (theRobot.odomd[2] - startAngle)
+                    print("Heading error is " + str(error)+"°\n")
+                    print("Angle is " + str(theRobot.odomd[2])+"°\n")
+                    await theRobot.setVel(0,min(-50,2*error)) # with threshold
+                    await asyncio.sleep(loopTime)
+            await robot.set_vel(0,0)
+            await asyncio.sleep(stopTime)
+            else: # need to drive straight, not turn
+                currentView = theRobot.odomd[3]/1000 # ToF reading (m)
+                print("When I get there, I will see " + str(expectedView)+" m\n")
+                print("Now, I see " + str(currentView)+" m\n")
+                error = currentView - expectedView
+                if currentView < expectedView: # need to drive backwards
+                    if drivingForward: # need to reverse direction
+                        await theRobot.setVel(0,0) # stop first
+                        await asyncio.sleep(stopTime)
+                    while -error > linearThreshold:
+                        print("Position error is " + str(error)+" m\n")
+                        vel = min(max(error,-1),-0.3)
+                        # don't go past 100% or below 30%                    
+                        await theRobot.setVel(vel,0)
+                        await asyncio.sleep(loopTime)
+                        error = theRobot.odomd[3]/1000 - expectedView # update reading
+                    drivingForward = False
+                else: # currentView >= expectedView; need to drive forwards
+                    if not drivingForward: # need to reverse direction
+                        await theRobot.setVel(0,0) # stop first
+                        await asyncio.sleep(stopTime)
+                    while error > linearThreshold:
+                        print("Position error is " + str(error)+" m\n")
+                        vel = max(min(error,1),0.3)
+                        # don't go past 100% or below 30%
+                        await theRobot.setVel(vel,0)
+                        await asyncio.sleep(loopTime)
+                        error = theRobot.odomd[3]/1000 - expectedView # update reading
+                    drivingForward = True
+            sLast = s
+            # Plot the path with starting and ending points
+    #         # x's are columns and y's are rows, backwards but right-side-up
+    #         xWorld = list(loc.mapper.from_map(*s)[:2])
+    #         xWorld.reverse()        
+    #         xWorld[0] = minX + xWorld[0]
+    #         xWorld[1] = maxY + minY - xWorld[1]
+    #         loc.plotter.plot_point(*xWorld,ODOM)
+    #     xWorld = [] # initialize world coordinate array
+    #     for k in range(2): # get x,y coords. of start and end points
+    #         xWorld.append(list(loc.mapper.from_map(*x[k],0))[:2])
+    #         xWorld[k].reverse()
+    #         xWorld[k][0] = minX + xWorld[k][0]
+    #         xWorld[k][1] = maxY + minY - xWorld[k][1]
+    #     loc.plotter.plot_point(*xWorld[0],BEL)
+    #     loc.plotter.plot_point(*xWorld[1],GT)
+```
+
+```
+File "<ipython-input-19-fb938aa9c765>", line 10
+    await asyncio.sleep(0.1) # put "await anything" here and IPython pukes
+                ^
+SyntaxError: invalid syntax
+```
+
+### Hardware Issues
+
+Experienced two main problems in this lab: (1) the small LiPo battery wire broke inside the connector, and (2) the wheels did not skid as desired. Responded as follows:
+
+1. First, tried to power the robot via USB using a portable charger. This worked for a few seconds, and then the charger turned off due to the low current draw. Then, managed to solder the wire back into the connector with lots of extra solder, as shown below. This usually worked, though sometimes the wire had to be unplugged and plugged back in to make the robot power on.
+
+2. Coated the two rear wheels with Scotch tape. Reasoned as follows: 
+    * Need two wheels to control both speed and direction. Any more wheels, and some wheels must skid during turns.
+    * Want an absolute orientation during turns. Want to point-turn.
+    * Used "omni wheels" (such as those in [holonomic drives](https://youtu.be/soudy8fKygk)) to make predictable point turns in [other projects](https://youtu.be/hoWKCWjAxYA).
+    * Using two skidable wheels and two high-friction wheels tends to make a robot turn about a point somewhere between the two wheels (depending on relative speeds.)
+    * Turning about the front is optimal since the ToF sensor is at the front.
+
+![](Lab10/Images/TapeRearWheelsSolder.jpg)
+
+Succeeded in making the robot make nearly perfect point turns; it tends to turn about its right wheel, which is very close to the position of the ToF sensor.
+
+<video width="600" controls type><source src="Lab10/Videos/PointTurn.mp4" type="video/mp4"></video>

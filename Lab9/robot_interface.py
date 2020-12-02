@@ -488,6 +488,7 @@ class Localization():
 
         # Print prob as a string to prevent rounding
         print("GT index      : ", gt_index)
+        print("Current GT    : ", current_gt)
         print("Bel index     : ",
               argmax_bel[0], "with prob = ", str(argmax_bel[1])[:9])
         print("Bel_bar prob at index = ", self.bel_bar[argmax_bel[0]])

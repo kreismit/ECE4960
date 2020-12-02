@@ -72,7 +72,7 @@ class Robot:
             Descriptors["RX_CHAR_UUID"].value,
             bytearray([Commands.GET_ODOM.value, 0]))
     
-    async def setVel(self, ang, lin):
+    async def setVel(self, lin, ang):
         # write velocity settings, which don't need to be integers
         #print(struct.pack("<BBff",Commands.SET_VEL.value, 2, ang, lin))
         await self.bt_interface.write_gatt_char(
