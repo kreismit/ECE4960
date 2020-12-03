@@ -3163,13 +3163,102 @@ Figure 3. A* algorithm completes a more complex path. Yellow dot is starting poi
 Figure 4. A relatively long solution time.
 
 
-However, the starting-point generator sometimes picks points inside the counter (the closed area on the right) so there was no way to access the end point in the room.
+Below is the working code for generating start points, finish points, and paths using the path planner:
+
+```python
+# Generate a grid of the right size; all unoccupied cells are zero...
+grid = np.zeros((cellsY+1, cellsX), dtype=np.uint8) # planner needs 8-bit integers
+# (maybe it's my choice of bounding box, but the y dimension gets chopped off, so it needs 1 more.)
+# ... and the the occupied cells are 1
+# (negative numbers tend to mess this up. So, the code shifts the coordinates until they are positive.)
+minX = min(start_points[:,0]) # and note that the two arrays contain all the same points,
+minY = min(start_points[:,1]) # just in different orders
+for i in range(np.shape(start_points)[0]):
+    xStart = start_points[i,0] - minX
+    yStart = start_points[i,1] - minY
+    xEnd = end_points[i,0] - minX
+    yEnd = end_points[i,1] - minY
+    # interpolate with half-cell resolution so no cells are skipped
+    numInterpPoints = round(max(abs((xEnd-xStart)/0.1), abs((yEnd-yStart)/0.1)))
+    #print(numInterpPoints)
+    if (numInterpPoints > 0): # sometimes there will be a duplicate point
+        stepX = (xEnd-xStart)/numInterpPoints
+        stepY = (yEnd-yStart)/numInterpPoints
+        #print("step: {},{}".format(stepX, stepY))
+        for s in range(numInterpPoints):
+            x = s*stepX + xStart
+            y = s*stepY + yStart
+            #print("{},{}".format(x,y))
+            grid[int(y/0.2),int(x/0.2)] = 1
+    else:
+        grid[int(yStart/0.2),int(xStart/0.2)] = 1
+grid = np.flipud(grid) # by default, rows are numbered top-to-bottom
+
+# Instantiate the class PlannerQuery
+pq = PlannerQuery(grid)
+
+searcher = search(grid)
+solution = []
+
+# Generate 10 different start and goal cells based on the occupancy grid encoded in the **grid** variable. 
+# Each plot showcases the obstacles in white, while the start and goals cells are depicted in red and green, respectively.
+numStartGoal = 1 # will be 10 eventually
+for i in range(0,numStartGoal):
+    # Generate a goal cell **from robot's real start position**
+    x = pq.generate(plot=True)
+    # Below (not working yet): localize with new code, and use that position as x[0]
+    #init_bayes_filter()
+    #x = [get_max(loc.bel)[0][:2] ] # first two entries (x,y)
+    #x.append(pq.generateGoal(x[0],plot=True))  # x has the same format
+    solution.append(searcher.astar(x[0], x[1]))
+    print("-----------------")
+```
+After this code runs in a Jupyter cell, the results are passed to the next cell, where the robot is instructed to follow the path.
 
 ### Making the Robot Follow the Path
 
 #### Turning
 
-The design of the path planner simplified driving to only ±90° turns and straight lines. Thus far, I had achieved approximate turns using PID velocity control and a while loop which stopped it when it reached its goal. I attempted to achieve better angular control using a proportional controller which fed velocity inputs to the existing PID (actually PI) velocity controller. Due to time delays and other reasons, I had limited success.
+The design of the path planner simplified driving to only ±90° turns and straight lines. Thus far, I had achieved approximate turns using PID velocity control and a while loop which stopped it when it reached its goal. I attempted to achieve better angular control using a proportional controller which fed velocity inputs to the existing PID (actually PI) velocity controller. The below code tests the angular positioning portion of the problem.
+
+```python
+# angular test
+speed = 30
+turnAngle = 90
+stopTime = 0.5
+loopTime = 0.1
+angThreshold = 2
+
+await theRobot.getOdom()
+await asyncio.sleep(5)
+while theRobot.odomd[3] is 0:
+    await asyncio.sleep(loopTime)
+startAngle = theRobot.odomd[2]
+for i in range(2): # test more than once: original loop changed turnAngle at the end
+    error = turnAngle - (theRobot.odomd[2] - startAngle)
+    if turnAngle > 0:
+        # need to turn CCW
+        await theRobot.setVel(0,0) # stop first
+        await asyncio.sleep(stopTime)
+        while error > angThreshold: # run proportional control
+            error = turnAngle - (theRobot.odomd[2] - startAngle)
+            #print("Heading error is " + str(error)+"°")
+            #print("Angle is " + str(theRobot.odomd[2])+"°\n")
+            await theRobot.setVel(0,max(speed,3*error)) # with threshold
+            await asyncio.sleep(loopTime)
+    elif turnAngle < 0:
+        # need to turn CW
+        await theRobot.setVel(0,0)
+        await asyncio.sleep(stopTime)
+        while -error > angThreshold: # run proportional control
+            error = turnAngle - (theRobot.odomd[2] - startAngle)
+            #print("Heading error is " + str(error)+"°")
+            #print("Angle is " + str(theRobot.odomd[2])+"°\n")
+            await theRobot.setVel(0,min(-speed,3*error)) # with threshold
+            await asyncio.sleep(loopTime)
+    await robot.set_vel(0,0)
+    await asyncio.sleep(stopTime)
+```
 
 <video width="600" controls type><source src="Lab10/Videos/RightTurnTest.mp4" type="video/mp4"></video>
 
@@ -3177,7 +3266,51 @@ The design of the path planner simplified driving to only ±90° turns and strai
 
 #### Driving Straight
 
-Driving forwards:
+This code segment tested the forward/back positioning portion of the problem.
+
+```python
+# Linear test: crude PD controller
+expectedView = 0.8 # meters from wall
+drivingForward = True
+linearThreshold = 0.02
+minVel = -0.5
+kp = 1
+kd = 2
+lastError = 0
+
+await theRobot.getOdom()
+await asyncio.sleep(5)
+
+currentView = theRobot.odomd[3]/1000 # ToF reading (m)
+print("When I get there, I will see " + str(expectedView)+" m\n")
+print("Now, I see " + str(currentView)+" m\n")
+error = currentView - expectedView
+if currentView < expectedView: # need to drive backwards
+    if drivingForward: # need to reverse direction
+        await theRobot.setVel(0,0) # stop first
+        await asyncio.sleep(stopTime)
+    sign = -1
+    drivingForward = False
+else: # currentView >= expectedView; need to drive forwards
+    if not drivingForward: # need to reverse direction
+        await theRobot.setVel(0,0) # stop first
+        await asyncio.sleep(stopTime)
+    sign = 1
+    drivingForward = True
+while sign*error > linearThreshold:
+    #print("Position error is " + str(error)+" m\n")
+    output = kp*error + kd*(error-lastError)
+    vel = sign*max(min(sign*output,1),minVel)
+    # sign correction, upper & lower threshold
+    #vel = max(2*error-minVel, -1)
+    await theRobot.setVel(vel,0)
+    await asyncio.sleep(loopTime)
+    lastError = error
+    error = theRobot.odomd[3]/1000 - expectedView # update reading
+await theRobot.setVel(0,0)
+```
+
+Driving forwards (drives crooked because closed-loop angle control is off in this video):
 
     When I get there, I will see 0.8 m
     
@@ -3197,21 +3330,29 @@ And it worked with small movements as well.
 
 <video width="600" controls type><source src="Lab10/Videos/Slight.mp4" type="video/mp4"></video>
 
-The biggest issue was bad calibration. The robot often drove in circles instead of in straight lines because the gyroscope failed to calibrate correctly.
-
-I tested each portion of the following code individually and it worked; however, it failed to produce the expected results.
+Below is the code for executing the planned path (assuming starting position is known, and starting angle is always 0°.)
 
 ```python
-# Actually run the thing
+# Angular parameters
+angThreshold = 2 # allowed deviation in angular positioning
+minRot = 30
+gain = 10
+# Linear parameters
+expectedView = 0.8 # meters from wall
+drivingForward = True # bit to remember which way we've been driving
+linearThreshold = 0.1 # must be less than 10 cm off.
+minVel = -0.5   # smallest allowed linear speed
+kp = 1
+kd = 1
+lastError = 0
+# General parameters
 stopTime = 0.5 # time (s) to wait for the robot to come to a full stop
 loopTime = 0.1 # time (s) to wait during while loops
-drivingForward = True # bit to remember which way we've been driving
-linearThreshold = 0.1 # allowed deviation in linear positioning
-angThreshold = 2 # allowed deviation in angular positioning
+
+await asyncio.sleep(6) # give Tim time to run and start recording
 
 for i in range(0,numStartGoal):
     if solution[i] is not None:
-        await asyncio.sleep(0.1) # put "await anything" here and IPython pukes
         await theRobot.getOdom() # request odometry and ToF data
         sLast = [*x[0],0] # initialize "last" position at starting point (0° heading)
         while theRobot.odomd[3] is 0:
@@ -3227,7 +3368,7 @@ for i in range(0,numStartGoal):
                 pose[2] = pose[2] + 18
             print("I'm about to go to pose " + str(pose))
             expectedView = loc.mapper.get_views(*pose)[0] # view facing forward, m
-            print("When I get there, I will see " + str(expectedView)+" m\n")
+            #print("When I get there, I will see " + str(expectedView)+" m\n")
             # use 90° increments so 0° doesn't turn into +/- 10°
             turnAngle = 90*(s[2] - sLast[2])
             if turnAngle > 180: # normalize the turn angle
@@ -3243,22 +3384,24 @@ for i in range(0,numStartGoal):
                 await asyncio.sleep(stopTime)
                 while error > angThreshold: # run proportional control
                     error = turnAngle - (theRobot.odomd[2] - startAngle)
-                    print("Heading error is " + str(error)+"°\n")
-                    print("Angle is " + str(theRobot.odomd[2])+"°\n")
-                    await theRobot.setVel(0,max(50,2*error)) # with threshold
+                    #print("Heading error is " + str(error)+"°")
+                    #print("Angle is " + str(theRobot.odomd[2])+"°\n")
+                    await theRobot.setVel(0,max(speed,3*error)) # with threshold
                     await asyncio.sleep(loopTime)
+                await robot.set_vel(0,0)
+                await asyncio.sleep(stopTime)
             elif turnAngle < 0:
                 # need to turn CW
                 await theRobot.setVel(0,0)
                 await asyncio.sleep(stopTime)
                 while -error > angThreshold: # run proportional control
                     error = turnAngle - (theRobot.odomd[2] - startAngle)
-                    print("Heading error is " + str(error)+"°\n")
-                    print("Angle is " + str(theRobot.odomd[2])+"°\n")
-                    await theRobot.setVel(0,min(-50,2*error)) # with threshold
+                    #print("Heading error is " + str(error)+"°")
+                    #print("Angle is " + str(theRobot.odomd[2])+"°\n")
+                    await theRobot.setVel(0,min(-speed,3*error)) # with threshold
                     await asyncio.sleep(loopTime)
-            await robot.set_vel(0,0)
-            await asyncio.sleep(stopTime)
+                await robot.set_vel(0,0)
+                await asyncio.sleep(stopTime)
             else: # need to drive straight, not turn
                 currentView = theRobot.odomd[3]/1000 # ToF reading (m)
                 print("When I get there, I will see " + str(expectedView)+" m\n")
@@ -3268,28 +3411,27 @@ for i in range(0,numStartGoal):
                     if drivingForward: # need to reverse direction
                         await theRobot.setVel(0,0) # stop first
                         await asyncio.sleep(stopTime)
-                    while -error > linearThreshold:
-                        print("Position error is " + str(error)+" m\n")
-                        vel = min(max(error,-1),-0.3)
-                        # don't go past 100% or below 30%                    
-                        await theRobot.setVel(vel,0)
-                        await asyncio.sleep(loopTime)
-                        error = theRobot.odomd[3]/1000 - expectedView # update reading
+                    sign = -1
                     drivingForward = False
                 else: # currentView >= expectedView; need to drive forwards
                     if not drivingForward: # need to reverse direction
                         await theRobot.setVel(0,0) # stop first
                         await asyncio.sleep(stopTime)
-                    while error > linearThreshold:
-                        print("Position error is " + str(error)+" m\n")
-                        vel = max(min(error,1),0.3)
-                        # don't go past 100% or below 30%
-                        await theRobot.setVel(vel,0)
-                        await asyncio.sleep(loopTime)
-                        error = theRobot.odomd[3]/1000 - expectedView # update reading
+                    sign = 1
                     drivingForward = True
-            sLast = s
-            # Plot the path with starting and ending points
+                while sign*error > linearThreshold:
+                    #print("Position error is " + str(error)+" m\n")
+                    output = kp*error + kd*(error-lastError)
+                    vel = sign*max(min(sign*output,1),minVel)
+                    # sign correction, upper & lower threshold
+                    #vel = max(2*error-minVel, -1)
+                    await theRobot.setVel(vel,0)
+                    await asyncio.sleep(loopTime)
+                    lastError = error
+                    error = theRobot.odomd[3]/1000 - expectedView # update reading
+                await theRobot.setVel(0,0)
+        sLast = s
+
     #         # x's are columns and y's are rows, backwards but right-side-up
     #         xWorld = list(loc.mapper.from_map(*s)[:2])
     #         xWorld.reverse()        
@@ -3304,13 +3446,6 @@ for i in range(0,numStartGoal):
     #         xWorld[k][1] = maxY + minY - xWorld[k][1]
     #     loc.plotter.plot_point(*xWorld[0],BEL)
     #     loc.plotter.plot_point(*xWorld[1],GT)
-```
-
-```
-File "<ipython-input-19-fb938aa9c765>", line 10
-    await asyncio.sleep(0.1) # put "await anything" here and IPython pukes
-                ^
-SyntaxError: invalid syntax
 ```
 
 ### Hardware Issues
