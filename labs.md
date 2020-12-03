@@ -2790,7 +2790,7 @@ The `Service call failed` error messages occur because I had not yet rewritten t
 
 ## Materials
 
-Used the same materials as in [lab 6 and following](#L6)
+Used the same materials as in [lab 6 and following](#L6).
 
 ## Procedure
 
@@ -2993,7 +2993,7 @@ I had to make some changes to the robot's Arduino code as well. Since I wasn't a
 
 I was able to achieve consistent near-zero turn radii by coating the rear wheels of the robot with Scotch tape (which is more slippery than other kinds of tape.)
 
-TODO: demonstrate with video
+<video width="600" controls><source src="Lab10/Videos/PointTurn.mp4" type="video/mp4"></video>
 
 ### Path planning
 
@@ -3492,6 +3492,9 @@ Obviously there is more work to be done. Due to my finite time for other courses
 * A change is needed for the Bayes filter to work with the asynchronous `get_observation_data()` function.
     * The Bayes filter itself works, since it worked in Lab 9.
     * Again, I attempted to fix this, but a variable passed to the existing functions in `robot_interface.py` is not getting typed correctly, so it throws an error. I don't think I am passing any outputs with value `None` but apparently I am.
-* The planner sometimes assigns a start point inside the counter.
-    * I need to manually add ones to all the points inside the counter, since I can't think of a programmatic way to do it.
+* `planner_query` sometimes assigns a start point inside the counter.
+    * I need to manually add ones to all the points inside the counter (can't think of a programmatic way to do it.)
     * This is a "won't fix" since the goal is to pass the robot's actual starting position into the planner.
+* Add a dance, light flash, etc. when the robot reaches the goal!
+
+See the rest of my code and results [here on GitHub](https://github.com/kreismit/ECE4960/tree/master/Lab10).
