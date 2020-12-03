@@ -217,6 +217,39 @@ class PlannerQuery():
             plt.show()
         
         return start_cell, goal_cell
+    
+    def generateGoal(self, start_cell, plot=True):
+        """Generate a valid start and goal cell for the planner
+
+        Args:
+            plot (bool, optional): Se this to true to plot and print debug info. Defaults to False.
+
+        Returns:
+            start_cell [(int, int)]: Start cell in the grid
+            goal_cell [(int, int)]: Goal cell in the grid
+        """
+        output_img = cv2.cvtColor(np.copy(self.grid)*255,cv2.COLOR_GRAY2RGB)
+
+        goal_cell = self.get_goal_cell(start_cell)
+        
+        if plot == True:
+            # set_n_closest(output_image, start_cell, 3, [0,0,255])
+            
+            print("Start cell: ", start_cell)
+            print("Goal cell: ", goal_cell)
+            
+            xs, ys = self.get_line_indices(start_cell, goal_cell)
+            
+            # for i in range(len(xs)):
+            #     print (xs[i],ys[i])
+            #     output_img[xs[i], ys[i]] = [0,255,255]
+
+            output_img[start_cell] = [255,0,0]
+            output_img[goal_cell] = [0,255,0]
+            plt.imshow(output_img)
+            plt.show()
+        
+        return start_cell, goal_cell
 
 def init():
     print("-----------------------")

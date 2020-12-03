@@ -758,7 +758,8 @@ void loop()
         int sign = pow(-1, (float) i+FLIPPED); // -1^i so 1 for i=0; -1 for i=1
         // I couldn't make PID control with the accelerometer work, so I'm using open-loop.
         // Proportional gain is the multiplier (H) for the reference input.
-        power[i] = sign*(127*r[1] + offsetFB/2) + 127 + offsetLR/2 + output;
+        power[i] = sign*(127*r[1] + offsetFB/2) + 127 + offsetLR/2 + output; // try to keep a constant heading
+        //power[i] = sign*(127*r[1] + offsetFB/2) + 127 + offsetLR/2; // pure open-loop, no attempt to drive straight
         Serial.printf("\nSetting motor %d to %d\n",i,power[i]);
       }
       if (v > maxSpeed) // Sanity check on velocity reading - avoid quadratic error integration

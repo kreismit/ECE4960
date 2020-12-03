@@ -48,7 +48,7 @@ float mX, mY, mZ;           // Magnetometer readings (possibly compensated) alon
 float mXCal = 0, mYCal = 0, mZCal = 0; // Calibration offsets for mX, mY, mZ
 float mTotal;               // total in-plane magnetometer reading
 int count = 0;              // count the number of magnetometer readings for averaging
-float alpha = 0.3;          // Complementary filter parameter
+float alpha = 0.3;          // Complementary filter parameterz
 int tNow, tLast;            // current and previous times (microseconds)
 float dt;                   // change in time (sec)
 int tWait = 10;             // Milliseconds to wait between each data update

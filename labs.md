@@ -2104,7 +2104,7 @@ aCX = 10*(aX-aXCal);                               // acceleration, calibrated b
 
 ```c++
   if(pid){ // As long as we're running the controller,
-    ...                                                                         */
+    ...
     if (r[0] !=0){ // If a nonzero linear velocity is requested,
       ...
       if (v > maxSpeed) // Sanity check on velocity reading - avoid quadratic error integration
@@ -2132,7 +2132,7 @@ Planned improvements, in order of priority:
 
 * ~~Implementing a low-pass filter on all IMU readings, not only those going into the PID controller (in C).~~
 * ~~Tuning the low-pass filter.~~
-* Rewriting my code to maintain a connection with the robot rather than dropping it after each action (in Python).
+* ~~Rewriting my code to maintain a connection with the robot rather than dropping it after each action (in Python).~~
 * Factoring magnetometer data into the yaw reading to limit drift (in C).
 
 ### More Implementation Details
@@ -3156,7 +3156,7 @@ It was predictable, even for more complex paths:
 Figure 3. A* algorithm completes a more complex path. Yellow dot is starting point; green is ending point; and blue is path.
 
 
-<p id="resultsspeed">And it was consistently fast: the average solution time is about 0.05 seconds.</p>
+<p id="resultsspeed">And it was consistently fast: the average solution time is about 0.05 seconds and the highest so far is 0.085 seconds.</p>
 
 ![](Lab10/Images/FastSolution.png)
 
@@ -3166,6 +3166,36 @@ Figure 4. A relatively long solution time.
 However, the starting-point generator sometimes picks points inside the counter (the closed area on the right) so there was no way to access the end point in the room.
 
 ### Making the Robot Follow the Path
+
+#### Turning
+
+The design of the path planner simplified driving to only ±90° turns and straight lines. Thus far, I had achieved approximate turns using PID velocity control and a while loop which stopped it when it reached its goal. I attempted to achieve better angular control using a proportional controller which fed velocity inputs to the existing PID (actually PI) velocity controller. Due to time delays and other reasons, I had limited success.
+
+<video width="600" controls type><source src="Lab10/Videos/RightTurnTest.mp4" type="video/mp4"></video>
+
+<video width="600" controls type><source src="Lab10/Videos/LeftTurnTest.mp4" type="video/mp4"></video>
+
+#### Driving Straight
+
+Driving forwards:
+
+    When I get there, I will see 0.8 m
+    
+    Now, I see 1.852 m
+
+<video width="600" controls type><source src="Lab10/Videos/Forward.mp4" type="video/mp4"></video>
+
+Driving backwards:
+
+    When I get there, I will see 0.8 m
+    
+    Now, I see 0.294 m
+    
+<video width="600" controls type><source src="Lab10/Videos/Reverse.mp4" type="video/mp4"></video>
+
+And it worked with small movements as well.
+
+<video width="600" controls type><source src="Lab10/Videos/Slight.mp4" type="video/mp4"></video>
 
 The biggest issue was bad calibration. The robot often drove in circles instead of in straight lines because the gyroscope failed to calibrate correctly.
 
@@ -3300,4 +3330,33 @@ Experienced two main problems in this lab: (1) the small LiPo battery wire broke
 
 Succeeded in making the robot make nearly perfect point turns; it tends to turn about its right wheel, which is very close to the position of the ToF sensor.
 
-<video width="600" controls type><source src="Lab10/Videos/PointTurn.mp4" type="video/mp4"></video>
+<video width="600" controls><source src="Lab10/Videos/PointTurn.mp4" type="video/mp4"></video>
+
+### The Most Fun Results
+
+I hope you enjoy these highlights from the blooper reel.
+
+These videos demonstrate the importance of controlling angle while driving straight.
+<video width="600" controls><source src="Lab10/Videos/Blooper1.mp4" type="video/mp4"></video>
+
+<video width="600" controls><source src="Lab10/Videos/Blooper2NoAngleControl.mp4" type="video/mp4"></video>
+
+I had trouble making it turn accurately, even with sufficient battery. When the gain was too small:
+<video width="600" controls><source src="Lab10/Videos/CantTurn.mp4" type="video/mp4"></video>
+
+And, finally, the battery died.
+<video width="600" controls><source src="Lab10/Videos/Blooper3BatteryDied.mp4" type="video/mp4"></video>
+
+Obviously there is more work to be done. Due to my finite time for other courses, I am leaving the following tasks undone:
+
+* The angular control system still does not work.
+    * The answer does *not* lie in the magnetometer, as the magnetic fields vary significantly in a single room.
+    * The gyroscope could be better calibrated, but this is not the main issue.
+    * Even when the battery is good, the proportional control does not send a sufficient velocity command to make the robot spin; rather, it either undershoots and hangs or overshoots.
+    * I believe this is a bug, not a tuning issue, since I tried cranking up the gain and the same thing happened.
+* A change is needed for the Bayes filter to work with the asynchronous `get_observation_data()` function.
+    * The Bayes filter itself works, since it worked in Lab 9.
+    * Again, I attempted to fix this, but a variable passed to the existing functions in `robot_interface.py` is not getting typed correctly, so it throws an error. I don't think I am passing any outputs with value `None` but apparently I am.
+* The planner sometimes assigns a start point inside the counter.
+    * I need to manually add ones to all the points inside the counter, since I can't think of a programmatic way to do it.
+    * This is a "won't fix" since the goal is to pass the robot's actual starting position into the planner.

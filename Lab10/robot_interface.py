@@ -443,8 +443,8 @@ class Localization():
         return np.exp(-np.power(x - mu, 2) / (2*np.power(sigma, 2)))
 
     # Execute the rotation behavior to measure observations
-    def get_observation_data(self, observation_count=18, rot_vel=30):
-        self.obs_range_data = self.robot.perform_observation_loop(observation_count,
+    async def get_observation_data(self, observation_count=18, rot_vel=30):
+        self.obs_range_data = await self.robot.perform_observation_loop(observation_count,
                                                                   rot_vel)
 
     # Print prior belief statistics (for after prediction step) and plot data in the plotter
