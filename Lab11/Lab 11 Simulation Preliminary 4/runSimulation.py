@@ -1,3 +1,4 @@
+#!/usr/bin/python3
 # RUN ME
 # This file gives the initial condition to the scipy.integrat.odeint function 
 # and plots the resulting state outputs at each time step in an animation and

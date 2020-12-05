@@ -5,8 +5,8 @@
 <a href="#L4">&emsp;Lab 4&emsp;</a>
 <a href="#L5">&emsp;Lab 5&emsp;</a>
 <a href="#L6">&emsp;Lab 6&emsp;</a>
-<a href="#L7">&emsp;Lab 7&emsp;</a>
-<a href="#L8">&emsp;Lab 8&emsp;</a><br/>
+<a href="#L7">&emsp;Lab 7&emsp;</a><br/>
+<a href="#L8">&emsp;Lab 8&emsp;</a>
 <a href="#L9">&emsp;Lab 9&emsp;</a>
 <a href="#L10">&emsp;Lab 10&emsp;</a>
 <a href="#L11">&emsp;Lab 11&emsp;</a>
@@ -3262,6 +3262,8 @@ for i in range(2): # test more than once: original loop changed turnAngle at the
     await asyncio.sleep(stopTime)
 ```
 
+<p id="Lab10Vids"></p>
+
 <video width="600" controls type><source src="Lab10/Videos/RightTurnTest.mp4" type="video/mp4"></video>
 
 <video width="600" controls type><source src="Lab10/Videos/LeftTurnTest.mp4" type="video/mp4"></video>
@@ -3500,3 +3502,73 @@ Obviously there is more work to be done. Due to my finite time for other courses
 * Add a dance, light flash, etc. when the robot reaches the goal!
 
 See the rest of my code and results [here on GitHub](https://github.com/kreismit/ECE4960/tree/master/Lab10).
+
+<h1 id="L11">Lab 11b</h1>
+
+## Materials Used
+
+* Computer, running Python 3.6 or higher, with these additional libraries:
+    * `numpy`
+    * `scipy`
+    * `matplotlib`
+    
+## Procedure and Data
+
+Downloaded [the lab simulation code](https://cei-lab.github.io/ECE4960/ECE4960_Lab11b.zip) and read it for understanding.
+
+### System Parameters
+
+Changed the parameters in [`pendulumParam.py`](https://github.com/kreismit/ECE4960/tree/master/Lab11/pendulumParam.py) to match those of the physical robot. Since [I didn't have a scale to measure mass](#L3), I consulted other groups' data from Lab 3.
+
+#### Mass
+
+My setup [replaced the control board with the SCMD module](#L5) and added a [3D-printed hood](#Lab10Vids), whose mass I measured using Cura with no build plate adhesion. So, the masses of the robot parts are as follows:
+
+|   Part                                            |  Mass (g) |
+|:--------------------------------------------------|:---------:|
+| Car (no battery, cosmetic hood, control board)    |  450-460  |
+| Battery                                           |  50-65    |
+| Electronic components                             |  40       |
+| 3D-printed hood (20% infill, minus brim)          |  57       |
+| Total                                             |  597-623  |
+| Total (used for simulation)                       |  610      |
+
+Used a larger estimate for battery since my repair added solder, electrical tape, and extra wire. Used the low-end estimate for car since cosmetic hood & original control board were removed. Neglected very small additions such as wires
+
+#### Effective Damping Constant
+
+In [Lab 3](#L3), I measured stopping time from maximum speed to make calculation of a damping constant *b* possible. I assumed first-order damping and neglected dynamic friction. This model breaks down at very low speeds since start-stop friction of the gears becomes significant, so below a certain threshold speed, the robot will stop in a very short time due to this friction. By feeling when the gears began this start-stop behavior, I moved the robot at this speed next to a ruler with a timer. The threshold speed is approximately 5 cm/s. Thus, the final speed in the damping equation is 0.05 m/s.
+
+![First-order damping equation](https://latex.codecogs.com/svg.latex?m\dot{v}%20=%20-bv)
+
+![Rearranging terms for solution](https://latex.codecogs.com/svg.latex?\frac{m\dot{v}}{v}%20=%20-b)
+
+![First-order solution](https://latex.codecogs.com/svg.latex?v = v_0e^{-bt/m})
+
+![Stop time from velocity](https://latex.codecogs.com/svg.latex?0.05 = v_0e^{-bt_{stop}/m}\rightarrow t_{stop}= -\frac{m}{b}\ln(\frac{0.05\text{ m/s}}{v_0})
+
+[//]: # ![Solving for b](https://latex.codecogs.com/svg.latex?b = -\frac{m}{t_{stop}\ln(\frac{0.05\text{ m/s}}{v_0})
+
+![Position solution](https://latex.codecogs.com/svg.latex?x = -\frac{mv_0}{bt}e^{-bt/m} + x_0)
+
+![Change in position during stopping]((https://latex.codecogs.com/svg.latex?x-x_{v_0} = -\frac{mv_0}{b}e^{-bt_{stop}/m})
+
+![Stop time from position](https://latex.codecogs.com/svg.latex?-\frac{m}{b}\ln\left|\frac{b}{mv_0}(x-x_{v_0})\right| = t_{stop})
+![Equating the two stop times](https://latex.codecogs.com/svg.latex?-\frac{m}{b}\ln\left|\frac{b}{mv_0}(x-x_{v_0})\right| =-\frac{m}{b}\ln\left|\frac{0.05\text{ m/s}}{v_0}\right|)
+![Solving for b](https://latex.codecogs.com/svg.latex?\frac{b}{m\cancel{v_0}}(x-x_{v_0}) =\frac{0.05\text{ m/s}}{\cancel{v_0}} \rightarrow b = \frac{0.05\text{ m/s}\cdot m}{x-x_{v_0}})
+
+From [Lab 3](#L3), the maximum speed *v₀* was 3.5 m/s and the stop distance *x-x₀* was 2-2.4 m. Then, the damping constant will range from 0.125 to 0.15.
+
+
+
+### Control Design for Ideal Pendulum
+
+### Control Design for Realistic Pendulum
+
+### Control Design for Sensor Noise
+
+## Results
+
+
+
+<h1 id="L12"><Lab 12b</h1>
