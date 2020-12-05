@@ -6,9 +6,11 @@
 <a href="#L5">&emsp;Lab 5&emsp;</a>
 <a href="#L6">&emsp;Lab 6&emsp;</a>
 <a href="#L7">&emsp;Lab 7&emsp;</a>
-<a href="#L8">&emsp;Lab 8&emsp;</a>
+<a href="#L8">&emsp;Lab 8&emsp;</a><br/>
 <a href="#L9">&emsp;Lab 9&emsp;</a>
-<a href="#L10">&emsp;Lab 10&emsp;</a></h4>
+<a href="#L10">&emsp;Lab 10&emsp;</a>
+<a href="#L11">&emsp;Lab 11&emsp;</a>
+<a href="#L12">&emsp;Lab 12&emsp;</a></h4>
 
 <h1 id="L1"> Lab 1</h1>
 
