@@ -3508,9 +3508,10 @@ See the rest of my code and results [here on GitHub](https://github.com/kreismit
 ## Materials Used
 
 * Computer, running Python 3.6 or higher, with these additional libraries:
-    * `numpy`
-    * `scipy`
-    * `matplotlib`
+    * [`numpy`](https://pypi.org/project/numpy/)
+    * [`scipy`](https://pypi.org/project/scipy/)
+    * [`matplotlib`](https://pypi.org/project/matplotlib/)
+    * [`control`](https://pypi.org/project/control/)
     
 ## Procedure and Data
 
@@ -3545,13 +3546,13 @@ In [Lab 3](#L3), I measured stopping time from maximum speed to make calculation
 
 ![First-order solution](https://latex.codecogs.com/svg.latex?v = v_0e^{-bt/m})
 
-![Stop time from velocity](https://latex.codecogs.com/svg.latex?0.05 = v_0e^{-bt_{stop}/m}\rightarrow t_{stop}= -\frac{m}{b}\ln(\frac{0.05\text{ m/s}}{v_0})
+![Stop time from velocity](https://latex.codecogs.com/svg.latex?0.05 = v_0e^{-bt_{stop}/m}\rightarrow t_{stop}= -\frac{m}{b}\ln(\frac{0.05\text{ m/s}}{v_0}))
 
 [//]: # ![Solving for b](https://latex.codecogs.com/svg.latex?b = -\frac{m}{t_{stop}\ln(\frac{0.05\text{ m/s}}{v_0})
 
 ![Position solution](https://latex.codecogs.com/svg.latex?x = -\frac{mv_0}{bt}e^{-bt/m} + x_0)
 
-![Change in position during stopping]((https://latex.codecogs.com/svg.latex?x-x_{v_0} = -\frac{mv_0}{b}e^{-bt_{stop}/m})
+![Change in position during stopping](https://latex.codecogs.com/svg.latex?x-x_{v_0} = -\frac{mv_0}{b}e^{-bt_{stop}/m})
 
 ![Stop time from position](https://latex.codecogs.com/svg.latex?-\frac{m}{b}\ln\left|\frac{b}{mv_0}(x-x_{v_0})\right| = t_{stop})
 ![Equating the two stop times](https://latex.codecogs.com/svg.latex?-\frac{m}{b}\ln\left|\frac{b}{mv_0}(x-x_{v_0})\right| =-\frac{m}{b}\ln\left|\frac{0.05\text{ m/s}}{v_0}\right|)
@@ -3559,16 +3560,23 @@ In [Lab 3](#L3), I measured stopping time from maximum speed to make calculation
 
 From [Lab 3](#L3), the maximum speed *v₀* was 3.5 m/s and the stop distance *x-x₀* was 2-2.4 m. Then, the damping constant will range from 0.125 to 0.15.
 
-
-
 ### Control Design for Ideal Pendulum
+
+TODO: Used `control.place()` to place eigenvalues in the left half-plane. Tried various combinations and chose a favorite.
+
+TODO: Ran LQR to compute `Kr`. Tried various *Q* and *R* values and chose a favorite.
 
 ### Control Design for Realistic Pendulum
 
+TODO: Added deadband (the velocity threshold described above) and saturation (max velocity) to the simulation. Attempted to design an LQR controller.
+
 ### Control Design for Sensor Noise
+
+TODO: Added Gaussian sensor noise to the simulation. Attempted to design an LQR controller.
 
 ## Results
 
+<video width="600" controls><source src="Lab11/Videos/FirstTry.mp4" type="video/mp4"></video>
+Figure 1. It balances... but not really quickly. Poles placed to -1, -2, -1.5, -3.
 
-
-<h1 id="L12"><Lab 12b</h1>
+<h1 id="L12">Lab 12b</h1>

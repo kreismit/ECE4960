@@ -2,7 +2,9 @@
 # I also added the force contraint function here and in the kalman filter (when it's being called)
 
 import numpy as np
+import control
 from signalGenerator import signalGen
+from pendulumParam import A, B, C
 
 class pendulumCnt:
 
@@ -88,7 +90,9 @@ class pendulumCnt:
         Compute the input self.u
         Your Code Here
         '''
-        self.u = 0 
+        poles = np.array([-1, -2, -1.5, -3])
+        Kr = control.place(A, B, poles)
+        self.u = np.matmul(Kr, des_state - curr_state)
 
         #simplifications for the calculations - constants
         Sy = np.sin(theta)
