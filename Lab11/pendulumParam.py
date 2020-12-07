@@ -14,6 +14,7 @@ g = -9.81   # Gravity, [m/s^2]
 b = 0.78   # Damping coefficient [Ns]
 maxVel = 3.5 # maximum linear speed of robot (m/s)
 threshold = 0.05 # minimum linear speed of robot (m/s)
+maxForce = 8.46 # maximum actuator force (N)
 
 #parameters for animation
 w = 0.15      # Width of the cart [m]
@@ -26,6 +27,13 @@ t_start = 0.0   # Start time of simulation [s]
 t_end = 30.0    # End time of simulation [s]
 Ts = 0.001      # sample time for simulation [s]
 t_plot = 0.5    # Animation update rate [s]
+
+# Sensor Noise Standard Deviations
+
+zNoise = 0.0
+zDotNoise = 0.0
+thetaNoise = 0.0*np.pi/180 # 1° standard deviation
+thetaDotNoise = 0.0*np.pi/180 #0.1°/s std. dev.
 
 #Initial Conditions
 z0 = 0.01               # [m]

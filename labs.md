@@ -3544,25 +3544,41 @@ Used a larger estimate for battery since my repair added solder, electrical tape
 
 In [Lab 3](#L3), I measured stopping time from maximum speed to make calculation of a damping constant *b* possible. I assumed first-order damping and neglected dynamic friction. This model breaks down at very low speeds since start-stop friction of the gears becomes significant, so below a certain threshold speed, the robot will stop in a very short time due to this friction. By feeling when the gears began this start-stop behavior, I moved the robot at this speed next to a ruler with a timer. The threshold speed is approximately 5 cm/s. Thus, the final speed in the damping equation is 0.05 m/s.
 
-![First-order damping equation](https://latex.codecogs.com/svg.latex?m\dot{v}%20=%20-bv)
+First-order damping equation: ![](https://latex.codecogs.com/svg.latex?m\dot{v}%20=%20-bv)
 
 ![Rearranging terms for solution](https://latex.codecogs.com/svg.latex?\frac{m\dot{v}}{v}%20=%20-b)
 
-![First-order solution](https://latex.codecogs.com/svg.latex?v = v_0e^{-bt/m})
+First-order solution: ![](https://latex.codecogs.com/svg.latex?v = v_0e^{-bt/m})
 
 ![Stop time from velocity](https://latex.codecogs.com/svg.latex?0.05 = v_0e^{-bt_{stop}/m}\rightarrow t_{stop}= -\frac{m}{b}\ln(\frac{0.05\text{ m/s}}{v_0}))
 
-[//]: # ![Solving for b](https://latex.codecogs.com/svg.latex?b = -\frac{m}{t_{stop}\ln(\frac{0.05\text{ m/s}}{v_0})
+![Solving for b](https://latex.codecogs.com/svg.latex?b = -\frac{m}{t_{stop}\ln(\frac{0.05\text{ m/s}}{v_0})
 
-![Position solution](https://latex.codecogs.com/svg.latex?x = -\frac{mv_0}{bt}e^{-bt/m} + x_0)
+![Position solution](https://latex.codecogs.com/svg.latex?x = -\frac{mv_0}{b}e^{-bt/m} + x_0)
 
 ![Change in position during stopping](https://latex.codecogs.com/svg.latex?x-x_{v_0} = -\frac{mv_0}{b}e^{-bt_{stop}/m})
 
 ![Stop time from position](https://latex.codecogs.com/svg.latex?-\frac{m}{b}\ln\left|\frac{b}{mv_0}(x-x_{v_0})\right| = t_{stop})
-![Equating the two stop times](https://latex.codecogs.com/svg.latex?-\frac{m}{b}\ln\left|\frac{b}{mv_0}(x-x_{v_0})\right| =-\frac{m}{b}\ln\left|\frac{0.05\text{ m/s}}{v_0}\right|)
+
+Equating the two stop times: ![](https://latex.codecogs.com/svg.latex?-\frac{m}{b}\ln\left|\frac{b}{mv_0}(x-x_{v_0})\right| =-\frac{m}{b}\ln\left|\frac{0.05\text{ m/s}}{v_0}\right|)
+
 ![Solving for b](https://latex.codecogs.com/svg.latex?\frac{b}{m\cancel{v_0}}(x-x_{v_0}) =\frac{0.05\text{ m/s}}{\cancel{v_0}} \rightarrow b = \frac{0.05\text{ m/s}\cdot m}{x-x_{v_0}})
 
 From [Lab 3](#L3), the maximum speed *v₀* was 3.5 m/s and the stop distance *x-x₀* was 2-2.4 m. Then, the damping constant will range from 0.125 to 0.15.
+
+This is unreasonable, since the resulting stopping time ![t_stop](https://latex.codecogs.com/svg.latex?t_{stop}) comes out to 17 seconds. Though I can't find my mistake, I observed about 3-4 seconds stopping time (as did the few other students who recorded stopping time measurements.) Basing my estimate on more reasonable stop time of 3-4 seconds, the damping constant is nearly the same as that measured by the TA:
+
+![Solving for b](https://latex.codecogs.com/svg.latex?b = -\frac{m}{t_{stop}\ln(\frac{0.05\text{ m/s}}{v_0}) = 0.647 to 0.864
+
+Thus, I left the damping constant *b* at its original value. The animation with *m*=0.61 and *b*=0.78, does not appear reasonable, but mainly because of a lack of deadband in the drivetrain; this issue is analyzed later.
+
+#### Maximum Motor Torque
+
+Rather than analyzing the motor torque and the wheel radius independently, I choose to treat the robot as a block being pushed by a force whose magnitude is the motor torque &div; the wheel radius.
+
+Given that the maximum incline a robot with medium-drained battery can clime is 45°, finding the motor force becomes a simple statics problem:
+
+![Hand calculations and sketches](Lab11_HandCalcs.jpg)
 
 ## Control Design for Ideal Pendulum
 
@@ -3596,7 +3612,7 @@ Figure 2. Poles placed to -1, -14, -1.5, -15.
 
 To see what would happen, I tried changing the position gains only, going back to the original poles for `zdot` and `thetadot`. As expected, the settling time is much quicker.
 
-<video width="600" controls><source src="Lab11/Videos/IncreaseZTheta.mp4" type="video/mp4"></video>
+<video width="600" controls><source src="Lab11/Videos/IncreasedZTheta.mp4" type="video/mp4"></video>
 Figure 3. Poles placed to -10, -1, -11, -2.
 
 Increasing all the gains at once (-10, -14, -11, -15), I expected to see a much stiffer pendulum with very quick response time (maybe unrealistically so). Instead, I saw a frozen animation and this error message:
@@ -3605,7 +3621,7 @@ Increasing all the gains at once (-10, -14, -11, -15), I expected to see a much 
     Run with full_output = 1 to get quantitative information.
     warnings.warn(warning_msg, ODEintWarning)
 
-On Campuswire, this error was interpreted to mean the poles cannot be placed that far into the LHP; the system goes unstable. (I miss my root locus diagrams from the frequency domain &ndash; they always help with these kinds of issues.) However, reducing the gains somewhat, I still achieved a very quick response without an error:
+[On Campuswire](https://campuswire.com/c/GBD54AB15/feed/193), this error was interpreted to mean the poles cannot be placed that far into the LHP; the system goes unstable. (I miss my root locus diagrams from the frequency domain &ndash; they always help with these kinds of issues.) However, reducing the gains somewhat, I still achieved a very quick response without an error:
 
 <video width="600" controls><source src="Lab11/Videos/FastPolePlacement.mp4" type="video/mp4"></video>
 
@@ -3643,7 +3659,7 @@ self.u = np.matmul(Kr, des_state - curr_state)
 Figure 6. System response with LQR-generated control matrix. *Q*=*I* and *R*=1.
 
 * Increased the cost for *x* and ![x dot](https://latex.codecogs.com/svg.latex?\dot{x}): these are the degrees of freedom the robot actually actuates.
-* Dropped the cost for ![theta](https://latex.codecogs.com/svg.latex?\theta) and ![theta dot](https://latex.codecogs.com/svg.latex?\dot{theta})
+* Dropped the cost for ![theta](https://latex.codecogs.com/svg.latex?\theta) and ![theta dot](https://latex.codecogs.com/svg.latex?\dot{\theta})
     * The pendulum is not directly actuated
     * The cost would ideally be zero since there is theoretically no limit to how fast the pendulum could move.
 * Increased *R* because
@@ -3656,7 +3672,7 @@ Figure 7. It didn't work the way I expected.
 I quickly realized (especially after trying large values of *R*) that I had this backwards somehow. After watching a [helpful YouTube video](https://youtu.be/E_RDCFOlJx4), I confirmed that I had reversed the functionality of *Q* and *R*.
 
 * Set higher penalties for *x* and ![theta](https://latex.codecogs.com/svg.latex?\theta): these are the results that matter most
-* Set lower penalties for ![x dot](https://latex.codecogs.com/svg.latex?\dot{x}) and ![theta dot](https://latex.codecogs.com/svg.latex?\dot{theta})
+* Set lower penalties for ![x dot](https://latex.codecogs.com/svg.latex?\dot{x}) and ![theta dot](https://latex.codecogs.com/svg.latex?\dot{\theta})
 * Increased the penalty *R* for the one actuator to 10
 
 <video width="600" controls><source src="Lab11/Videos/LQRDecent.mp4" type="video/mp4"></video>
@@ -3702,9 +3718,66 @@ The same, unmodified LQR controller still worked, but now it came to a full stop
 <video width="600" controls><source src="Lab11/Videos/LQRDeadbandSaturation.mp4" type="video/mp4"></video>
 Figure 10. LQR with λ₁=100, λ₂=10, λ₃=100, λ₄=10 for *Q*; and λ=50 for *R*, with deadband.
 
+#### Update: Saturation Mark Two
+
+Added a maximum actuation *force* in addition to a maximum actuation *velocity*. This variable `maxForce` was defined as 8.46 (Newtons) in `pendulumParam.py` and imported to `pendulumControllerDynamics.py`.
+
+```python
+# Maximum actuator force
+if self.u > maxForce:
+    self.u = maxForce
+elif self.u < -maxForce:
+    self.u = -maxForce
+```
+
+Since the LQR controller already minimizes actuator effort, I expected the results to look much the same. Instead, the simulator ran its four CPU threads near 100% (as usual for unstable systems) and showed this:
+
+<video width="600" controls><source src="Lab11/Videos/FellOver.mp4" type="video/mp4"></video>
+
+Figure 10. LQR controller performance (same *Q* and *R* as previously) with force limit.
+
+Increasing *R* and decreasing *Q* allowed it to solve more quickly, but still the system was unstable.
 
 ### Control Design for Sensor Noise
 
-TODO: Added Gaussian sensor noise to the simulation. Attempted to design an LQR controller.
+Added Gaussian sensor noise to the simulation. Attempted to design an LQR controller.
+
+#### Results
+
+The following code, added after `y` was unpacked, added normally-distributed sensor noise. The following numbers are about accurate for the gyro (at least before drift accumulates) but one meter is actually quite conservative for the accelerometer drift.
+
+```python
+# Add Gaussian (normally distributed) sensor noise
+z += np.random.normal(scale=1)
+zdot += np.random.normal(scale=0.2)
+theta += np.random.normal(scale=1*np.pi/180) # 1° standard deviation
+thetadot += np.random.normal(scale=0.1*np.pi/180) #0.1°/s std. dev. 
+```
+
+To improve the the code, defined these parameters in `pendulumParam.py`, imported them to `pendulumControllerDynamics.py`, and used the imported parameters.
+
+Not surprisingly, the LQR control system no longer worked. Again, the pendulum hung downward, and `odeint()` could not finish:
+
+    /home/tim/.local/lib/python3.8/site-packages/scipy/integrate/odepack.py:247: ODEintWarning: Excess work done on this call (perhaps wrong Dfun type).
+    Run with full_output = 1 to get quantitative information.
+    warnings.warn(warning_msg, ODEintWarning)
+    
+Tried reducing each noise parameter to zero independently, and tried combinations of nonzero noise components. The simulation would only run with all noise parameters set to zero. So, my intended solution of reducing the noise standard deviation in *x* and ![x dot](https://latex.codecogs.com/svg.latex?\dot{x}) by using time-of-flight sensors instead of odometry will not work; the small noise in θ and ![theta dot](https://latex.codecogs.com/svg.latex?\dot{\theta}) also breaks the controller. This is true even for very small noise parameters such as 0.001°.
+
+#### What causes the controller to fail?
+
+An unstable controller is usually what cases the simulation to fail (per [Campuswire](https://campuswire.com/c/GBD54AB15/feed/193)). Thus, if the controller breaks, the simulation breaks. This may be confirmed by setting an eigenvalue in the `control.place()` command to a positive number. Integration hangs for more than 30 seconds, the computer begins to heat up, and either an error is thrown or the animation is never displayed.
+
+```python
+poles = np.array([-1.9, -2, 2.1, -2.5])
+Kr = control.place(A, B, poles)
+self.u = np.matmul(Kr, des_state - curr_state)
+```
+
+Factors that cause the controller to fail include:
+
+* Poles in the right half-plane
+* Discontinuity in readings (e.g. time delays and random noise) which result in very large control responses
+* Inability to send the required control signal (e.g. due to deadband or saturation)
 
 <h1 id="L12">Lab 12b</h1>

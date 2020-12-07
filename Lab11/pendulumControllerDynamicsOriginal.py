@@ -2,10 +2,7 @@
 # I also added the force contraint function here and in the kalman filter (when it's being called)
 
 import numpy as np
-import scipy
-import control
 from signalGenerator import signalGen
-from pendulumParam import A, B, C, maxVel, threshold, zNoise, zDotNoise, thetaNoise, thetaDotNoise, maxForce
 
 class pendulumCnt:
 
@@ -73,11 +70,6 @@ class pendulumCnt:
     def cartpendfunc(self,y,t):
         #unpack the state
         z, zdot, theta, thetadot = y
-        # Add Gaussian (normally distributed) sensor noise
-        z += np.random.normal(scale=zNoise)
-        zdot += np.random.normal(scale=zDotNoise)
-        theta += np.random.normal(scale=thetaNoise)
-        thetadot += np.random.normal(scale=thetaDotNoise) 
 
         #don't allow theta to exceed 2pi
         #need this so that equivalnent angles don't cause a difference in 
@@ -96,23 +88,7 @@ class pendulumCnt:
         Compute the input self.u
         Your Code Here
         '''
-        Q = np.matrix( [[30, 0, 0,   0],
-                        [0,  8, 0,   0],
-                        [0,   0, 50, 0],
-                        [0,   0,  0, 5]])
-        R = np.matrix([50])
-        # Solve ARE (Algebraic Ricatti Equation)
-        S = scipy.linalg.solve_continuous_are(A, B, Q, R)
-        # Find Kr: the following line means R^-1 times B^T times S
-        #Kr = np.linalg.inv(R).dot(B.transpose().dot(S))
-        poles = np.array([-1.9, -2, 2.1, -2.5])
-        Kr = control.place(A, B, poles)
-        self.u = np.matmul(Kr, des_state - curr_state)
-        # Maximum actuator force
-        if self.u > maxForce:
-            self.u = maxForce
-        elif self.u < -maxForce:
-            self.u = -maxForce
+        self.u = 0 
 
         #simplifications for the calculations - constants
         Sy = np.sin(theta)
@@ -120,19 +96,8 @@ class pendulumCnt:
         D = self.m1*self.ell*self.ell*(self.m2+self.m1*(1.0-Cy*Cy))
 
         #calculating state values at the current time step
-        if zdot > maxVel: # maximum velocity to the right
-            ydot0 = maxVel
-        elif zdot < -maxVel: # maximum velocity to the left
-            ydot0 = -maxVel
-        elif zdot > threshold or zdot < -threshold: # deadband
-            ydot0 = zdot
-        else: # can't move slower than a certain speed
-            ydot0 = 0
+        ydot0 = zdot
         ydot1 = (1.0/D)*(-self.m1*self.m1*self.ell*self.ell*self.g*Cy*Sy + self.m1*self.ell*self.ell*(self.m1*self.ell*thetadot*thetadot*Sy - self.b*zdot)) + self.m1*self.ell*self.ell*(1.0/D)*self.u
-        if zdot > maxVel: # maximum velocity to the right
-            ydot1 = 0 # can't accelerate any more
-        elif zdot < -maxVel: # maximum velocity to the left
-            ydot1 = 0 # can't accelerate any more
         ydot2 = thetadot
         ydot3 = (1.0/D)*((self.m1+self.m2)*self.m1*self.g*self.ell*Sy    - self.m1*self.ell*Cy*      (self.m1*self.ell*thetadot*thetadot*Sy - self.b*zdot)) - self.m1*self.ell*Cy*(1.0/D)*self.u
         dydt = [ydot0, ydot1, ydot2, ydot3]
