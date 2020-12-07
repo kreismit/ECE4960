@@ -12,6 +12,8 @@ m2 = .610   # Mass of the cart [kg]
 ell = 1.21  # Length of the rod [m]
 g = -9.81   # Gravity, [m/s^2]
 b = 0.78   # Damping coefficient [Ns]
+maxVel = 3.5 # maximum linear speed of robot (m/s)
+threshold = 0.05 # minimum linear speed of robot (m/s)
 
 #parameters for animation
 w = 0.15      # Width of the cart [m]

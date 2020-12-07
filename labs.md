@@ -3505,6 +3505,8 @@ See the rest of my code and results [here on GitHub](https://github.com/kreismit
 
 <h1 id="L11">Lab 11b</h1>
 
+This is the simulation version (version **b**) of this lab. Note that all the figures below are videos of the system response.
+
 ## Materials Used
 
 * Computer, running Python 3.6 or higher, with these additional libraries:
@@ -3513,13 +3515,15 @@ See the rest of my code and results [here on GitHub](https://github.com/kreismit
     * [`matplotlib`](https://pypi.org/project/matplotlib/)
     * [`control`](https://pypi.org/project/control/)
     
-## Procedure and Data
+## Setup
 
 Downloaded [the lab simulation code](https://cei-lab.github.io/ECE4960/ECE4960_Lab11b.zip) and read it for understanding.
 
-### System Parameters
+## System Parameters
 
 Changed the parameters in [`pendulumParam.py`](https://github.com/kreismit/ECE4960/tree/master/Lab11/pendulumParam.py) to match those of the physical robot. Since [I didn't have a scale to measure mass](#L3), I consulted other groups' data from Lab 3.
+
+### Results
 
 #### Mass
 
@@ -3560,23 +3564,147 @@ In [Lab 3](#L3), I measured stopping time from maximum speed to make calculation
 
 From [Lab 3](#L3), the maximum speed *v₀* was 3.5 m/s and the stop distance *x-x₀* was 2-2.4 m. Then, the damping constant will range from 0.125 to 0.15.
 
-### Control Design for Ideal Pendulum
+## Control Design for Ideal Pendulum
 
-TODO: Used `control.place()` to place eigenvalues in the left half-plane. Tried various combinations and chose a favorite.
+Used `control.place()` to place eigenvalues in the left half-plane. Tried various combinations and chose a favorite.
 
-TODO: Ran LQR to compute `Kr`. Tried various *Q* and *R* values and chose a favorite.
+Ran LQR to compute `Kr`. Tried various *Q* and *R* values and chose a favorite.
 
-### Control Design for Realistic Pendulum
+### Results
 
-TODO: Added deadband (the velocity threshold described above) and saturation (max velocity) to the simulation. Attempted to design an LQR controller.
+#### Pole Placement
+
+Using the following control code:
+
+```python
+poles = np.array([-1, -2, -1.5, -3])
+Kr = control.place(A, B, poles)
+self.u = np.matmul(Kr, des_state - curr_state)
+```
+
+I achieved my first successful result, below:
+
+<video width="600" controls><source src="Lab11/Videos/FirstTry.mp4" type="video/mp4"></video>
+Figure 1. It balances, but tracks input slowly. Poles placed to -1, -2, -1.5, -3.
+
+I chose these poles rather arbitrarily, knowing they needed to be in the left half-plane or else the system would be unstable, and that a greater degree of control is needed for the rates of change than for the positions.
+
+To achieve better performance, the poles must be farther in the left half-plane. I tried pushing the poles for `zdot` and `thetadot` farther in the LHP; increasing a couple times, the result was quite stable, but still drifted slowly:
+
+<video width="600" controls><source src="Lab11/Videos/IncreaseZdotThetadot.mp4" type="video/mp4"></video>
+Figure 2. Poles placed to -1, -14, -1.5, -15.
+
+To see what would happen, I tried changing the position gains only, going back to the original poles for `zdot` and `thetadot`. As expected, the settling time is much quicker.
+
+<video width="600" controls><source src="Lab11/Videos/IncreaseZTheta.mp4" type="video/mp4"></video>
+Figure 3. Poles placed to -10, -1, -11, -2.
+
+Increasing all the gains at once (-10, -14, -11, -15), I expected to see a much stiffer pendulum with very quick response time (maybe unrealistically so). Instead, I saw a frozen animation and this error message:
+
+    /home/tim/.local/lib/python3.8/site-packages/scipy/integrate/odepack.py:247: ODEintWarning: Excess work done on this call (perhaps wrong Dfun type).
+    Run with full_output = 1 to get quantitative information.
+    warnings.warn(warning_msg, ODEintWarning)
+
+On Campuswire, this error was interpreted to mean the poles cannot be placed that far into the LHP; the system goes unstable. (I miss my root locus diagrams from the frequency domain &ndash; they always help with these kinds of issues.) However, reducing the gains somewhat, I still achieved a very quick response without an error:
+
+<video width="600" controls><source src="Lab11/Videos/FastPolePlacement.mp4" type="video/mp4"></video>
+
+Figure 4. Poles placed to -10, -4, -11, -5.
+
+In fact, the robot cannot move this quickly without flipping; there seems to be some significant ringing here. It took a few more tries to get a fast response which also looks reasonable. (This may still be faster than the robot can accelerate, or slower than it can move with deadband.)
+
+<video width="600" controls><source src="Lab11/Videos/MoreRealisticPolePlacement.mp4" type="video/mp4"></video>
+
+Figure 5. Poles placed to -1.9, -2, -2.1, -2.5.
+
+Chose [-1.9, -2, -2.1, -2.5] because the step response to a square wave appears fast, even with minimal movement; it appears to move as quickly as the robot reasonably can.
+
+#### LQR
+
+The following code stabilized the pendulum with reasonable results:
+
+```python
+Q = np.matrix( [[1, 0, 0, 0],
+                [0, 1, 0, 0],
+                [0, 0, 1, 0],
+                [0, 0, 0, 1]])
+R = np.matrix([1])
+# Solve ARE (Algebraic Ricatti Equation)
+S = scipy.linalg.solve_continuous_are(A, B, Q, R)
+# Find Kr: the following line means R^-1 times B^T times S
+Kr = np.linalg.inv(R).dot(B.transpose().dot(S))
+#poles = np.array([-1.9, -2, -2.1, -2.5])
+#Kr = control.place(A, B, poles)
+self.u = np.matmul(Kr, des_state - curr_state)
+```
+
+<video width="600" controls><source src="Lab11/Videos/LQRUnityGain.mp4" type="video/mp4"></video>
+
+Figure 6. System response with LQR-generated control matrix. *Q*=*I* and *R*=1.
+
+* Increased the cost for *x* and ![x dot](https://latex.codecogs.com/svg.latex?\dot{x}): these are the degrees of freedom the robot actually actuates.
+* Dropped the cost for ![theta](https://latex.codecogs.com/svg.latex?\theta) and ![theta dot](https://latex.codecogs.com/svg.latex?\dot{theta})
+    * The pendulum is not directly actuated
+    * The cost would ideally be zero since there is theoretically no limit to how fast the pendulum could move.
+* Increased *R* because
+    * The desired time constant is less than one second
+    * It appears that *R=1* corresponds to *τ=1*.
+
+<video width="600" controls><source src="Lab11/Videos/QRBackwards.mp4" type="video/mp4"></video>
+Figure 7. It didn't work the way I expected.
+
+I quickly realized (especially after trying large values of *R*) that I had this backwards somehow. After watching a [helpful YouTube video](https://youtu.be/E_RDCFOlJx4), I confirmed that I had reversed the functionality of *Q* and *R*.
+
+* Set higher penalties for *x* and ![theta](https://latex.codecogs.com/svg.latex?\theta): these are the results that matter most
+* Set lower penalties for ![x dot](https://latex.codecogs.com/svg.latex?\dot{x}) and ![theta dot](https://latex.codecogs.com/svg.latex?\dot{theta})
+* Increased the penalty *R* for the one actuator to 10
+
+<video width="600" controls><source src="Lab11/Videos/LQRDecent.mp4" type="video/mp4"></video>
+Figure 8. LQR with λ₁=10, λ₂=5, λ₃=100, λ₄=10 for *Q*; and λ=10 for *R*.
+
+A bit more tinkering yielded good results which nearly matched the results of the pole placement tuning; at this point, the limiting factor is *R*. A lower *R* yields higher performance (as expected.)
+
+<video width="600" controls><source src="Lab11/Videos/LQRBetter.mp4" type="video/mp4"></video>
+Figure 9. LQR with λ₁=100, λ₂=10, λ₃=100, λ₄=10 for *Q*; and λ=50 for *R*.
+
+Chose the above *Q* and *R* because I care little about the actual rates of change; I care that the angle is correct (since more movement means the pendulum is more likely to fall); and that the cart follows the reference input. I also care, almost as much as I care about reference tracking, that the robot does not accelerate too suddenly and flip. LQR allows me to tune for what matters most.
+
+## Control Design for Realistic Pendulum
+
+Added deadband (the velocity threshold described above) and saturation (max velocity) to the simulation. Attempted to design an LQR controller.
+
+### Results
+
+Added deadband and saturation effects by modifying the velocity as follows:
+
+```python
+if zdot > maxVel: # maximum velocity to the right
+            ydot0 = maxVel
+        elif zdot < -maxVel: # maximum velocity to the left
+            ydot0 = -maxVel
+        elif zdot > threshold or zdot < -threshold: # deadband
+            ydot0 = zdot
+        else: # can't move slower than a certain speed
+            ydot0 = 0
+```
+
+Also ensured the acceleration term could not be nonzero if `zdot` goes too high in either direction:
+
+```python
+if zdot > maxVel: # maximum velocity to the right
+            ydot1 = 0 # can't accelerate any more
+        elif zdot < -maxVel: # maximum velocity to the left
+            ydot1 = 0 # can't accelerate any more
+```
+
+The same, unmodified LQR controller still worked, but now it came to a full stop. The pendulum was balanced *just* right; what if the sensor readings were imperfect?
+
+<video width="600" controls><source src="Lab11/Videos/LQRDeadbandSaturation.mp4" type="video/mp4"></video>
+Figure 10. LQR with λ₁=100, λ₂=10, λ₃=100, λ₄=10 for *Q*; and λ=50 for *R*, with deadband.
+
 
 ### Control Design for Sensor Noise
 
 TODO: Added Gaussian sensor noise to the simulation. Attempted to design an LQR controller.
-
-## Results
-
-<video width="600" controls><source src="Lab11/Videos/FirstTry.mp4" type="video/mp4"></video>
-Figure 1. It balances... but not really quickly. Poles placed to -1, -2, -1.5, -3.
 
 <h1 id="L12">Lab 12b</h1>

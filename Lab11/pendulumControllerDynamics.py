@@ -2,9 +2,10 @@
 # I also added the force contraint function here and in the kalman filter (when it's being called)
 
 import numpy as np
+import scipy
 import control
 from signalGenerator import signalGen
-from pendulumParam import A, B, C
+from pendulumParam import A, B, C, maxVel, threshold
 
 class pendulumCnt:
 
@@ -90,8 +91,17 @@ class pendulumCnt:
         Compute the input self.u
         Your Code Here
         '''
-        poles = np.array([-1, -2, -1.5, -3])
-        Kr = control.place(A, B, poles)
+        Q = np.matrix( [[100, 0, 0,   0],
+                        [0,  10, 0,   0],
+                        [0,   0, 100, 0],
+                        [0,   0,  0, 10]])
+        R = np.matrix([50])
+        # Solve ARE (Algebraic Ricatti Equation)
+        S = scipy.linalg.solve_continuous_are(A, B, Q, R)
+        # Find Kr: the following line means R^-1 times B^T times S
+        Kr = np.linalg.inv(R).dot(B.transpose().dot(S))
+        #poles = np.array([-1.9, -2, -2.1, -2.5])
+        #Kr = control.place(A, B, poles)
         self.u = np.matmul(Kr, des_state - curr_state)
 
         #simplifications for the calculations - constants
@@ -100,8 +110,19 @@ class pendulumCnt:
         D = self.m1*self.ell*self.ell*(self.m2+self.m1*(1.0-Cy*Cy))
 
         #calculating state values at the current time step
-        ydot0 = zdot
+        if zdot > maxVel: # maximum velocity to the right
+            ydot0 = maxVel
+        elif zdot < -maxVel: # maximum velocity to the left
+            ydot0 = -maxVel
+        elif zdot > threshold or zdot < -threshold: # deadband
+            ydot0 = zdot
+        else: # can't move slower than a certain speed
+            ydot0 = 0
         ydot1 = (1.0/D)*(-self.m1*self.m1*self.ell*self.ell*self.g*Cy*Sy + self.m1*self.ell*self.ell*(self.m1*self.ell*thetadot*thetadot*Sy - self.b*zdot)) + self.m1*self.ell*self.ell*(1.0/D)*self.u
+        if zdot > maxVel: # maximum velocity to the right
+            ydot1 = 0 # can't accelerate any more
+        elif zdot < -maxVel: # maximum velocity to the left
+            ydot1 = 0 # can't accelerate any more
         ydot2 = thetadot
         ydot3 = (1.0/D)*((self.m1+self.m2)*self.m1*self.g*self.ell*Sy    - self.m1*self.ell*Cy*      (self.m1*self.ell*thetadot*thetadot*Sy - self.b*zdot)) - self.m1*self.ell*Cy*(1.0/D)*self.u
         dydt = [ydot0, ydot1, ydot2, ydot3]
