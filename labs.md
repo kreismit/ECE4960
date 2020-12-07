@@ -3552,7 +3552,7 @@ First-order solution: ![](https://latex.codecogs.com/svg.latex?v = v_0e^{-bt/m})
 
 ![Stop time from velocity](https://latex.codecogs.com/svg.latex?0.05 = v_0e^{-bt_{stop}/m}\rightarrow t_{stop}= -\frac{m}{b}\ln(\frac{0.05\text{ m/s}}{v_0}))
 
-![Solving for b](https://latex.codecogs.com/svg.latex?b = -\frac{m}{t_{stop}\ln(\frac{0.05\text{ m/s}}{v_0})
+![Solving for b](https://latex.codecogs.com/svg.latex?b=-\frac{m}{t_{stop}\ln\mid \frac{0.05\text{ m/s}}{v_0}\mid)
 
 ![Position solution](https://latex.codecogs.com/svg.latex?x = -\frac{mv_0}{b}e^{-bt/m} + x_0)
 
@@ -3560,7 +3560,7 @@ First-order solution: ![](https://latex.codecogs.com/svg.latex?v = v_0e^{-bt/m})
 
 ![Stop time from position](https://latex.codecogs.com/svg.latex?-\frac{m}{b}\ln\left|\frac{b}{mv_0}(x-x_{v_0})\right| = t_{stop})
 
-Equating the two stop times: ![](https://latex.codecogs.com/svg.latex?-\frac{m}{b}\ln\left|\frac{b}{mv_0}(x-x_{v_0})\right| =-\frac{m}{b}\ln\left|\frac{0.05\text{ m/s}}{v_0}\right|)
+Equating the two stop times: ![](https://latex.codecogs.com/svg.latex?-\frac{m}{b}\ln\left|\frac{b}{mv_0}(x-x_{v_0})\right| =-\frac{m}{b}\ln\mid\frac{0.05\text{ m/s}}{v_0}\mid)
 
 ![Solving for b](https://latex.codecogs.com/svg.latex?\frac{b}{m\cancel{v_0}}(x-x_{v_0}) =\frac{0.05\text{ m/s}}{\cancel{v_0}} \rightarrow b = \frac{0.05\text{ m/s}\cdot m}{x-x_{v_0}})
 
@@ -3578,7 +3578,7 @@ Rather than analyzing the motor torque and the wheel radius independently, I cho
 
 Given that the maximum incline a robot with medium-drained battery can clime is 45°, finding the motor force becomes a simple statics problem:
 
-![Hand calculations and sketches](Lab11_HandCalcs.jpg)
+![Hand calculations and sketches](Lab11/Images/Lab11_HandCalcs.jpg)
 
 ## Control Design for Ideal Pendulum
 
@@ -3708,9 +3708,9 @@ Also ensured the acceleration term could not be nonzero if `zdot` goes too high 
 
 ```python
 if zdot > maxVel: # maximum velocity to the right
-            ydot1 = 0 # can't accelerate any more
-        elif zdot < -maxVel: # maximum velocity to the left
-            ydot1 = 0 # can't accelerate any more
+    ydot1 = 0 # can't accelerate any more
+elif zdot < -maxVel: # maximum velocity to the left
+    ydot1 = 0 # can't accelerate any more
 ```
 
 The same, unmodified LQR controller still worked, but now it came to a full stop. The pendulum was balanced *just* right; what if the sensor readings were imperfect?
@@ -3730,13 +3730,33 @@ elif self.u < -maxForce:
     self.u = -maxForce
 ```
 
-Since the LQR controller already minimizes actuator effort, I expected the results to look much the same. Instead, the simulator ran its four CPU threads near 100% (as usual for unstable systems) and showed this:
+Since the LQR controller already minimizes actuator effort, I expected the results to look much the same.
 
-<video width="600" controls><source src="Lab11/Videos/FellOver.mp4" type="video/mp4"></video>
+<video width="600" controls><source src="Lab11/Videos/LQRRealistic.mp4" type="video/mp4"></video>
 
 Figure 10. LQR controller performance (same *Q* and *R* as previously) with force limit.
 
-Increasing *R* and decreasing *Q* allowed it to solve more quickly, but still the system was unstable.
+Though I achieved the same performance with LQR as with pole placement, the simmulation did *not* work the same with pole placement and a force limit! Instead, the simulator ran its four CPU threads near 100% (as usual for unstable systems) and showed this:
+
+<video width="600" controls><source src="Lab11/Videos/FellOver.mp4" type="video/mp4"></video>
+
+Figure 11. "Best" pole-placement *Kr* controller with force limit.
+
+This highlights an advantage of the LQR controller: it can achieve the same performance with less effort. 
+
+#### How slow can we go?
+
+Slightly out of order, attempted to maximize the controller actuation penalty. Setting *R* to 50,000 gave a ridiculously slow-moving, but still balancing, controller. Even *R*=1 billion still balanced the pendulum, although with zero reference tracking.
+
+<video width="600" controls><source src="Lab11/Videos/ReallySlow50000.mp4" type="video/mp4"></video>
+
+Figure 12. LQR controller with *R*=50,000.
+
+<video width="600" controls><source src="Lab11/Videos/DoesntMove1e9.mp4" type="video/mp4"></video>
+
+Figure 13. LQR controller with *R*=1,000,000,000.
+
+After trying 1 trillion also, I do not believe there is an upper limit. LQR will always generate a stable controller, but it might not follow the reference.
 
 ### Control Design for Sensor Noise
 
@@ -3766,7 +3786,7 @@ Tried reducing each noise parameter to zero independently, and tried combination
 
 #### What causes the controller to fail?
 
-An unstable controller is usually what cases the simulation to fail (per [Campuswire](https://campuswire.com/c/GBD54AB15/feed/193)). Thus, if the controller breaks, the simulation breaks. This may be confirmed by setting an eigenvalue in the `control.place()` command to a positive number. Integration hangs for more than 30 seconds, the computer begins to heat up, and either an error is thrown or the animation is never displayed.
+An unstable controller is usually what cases the simulation to fail (per [Campuswire](https://campuswire.com/c/GBD54AB15/feed/193)). Thus, if the controller breaks, the simulation breaks. This may be confirmed by setting an eigenvalue in the `control.place()` command to a positive number. Integration hangs, the computer begins to heat up, and either an error is thrown or the animation is not displayed a minute or more.
 
 ```python
 poles = np.array([-1.9, -2, 2.1, -2.5])
@@ -3779,5 +3799,6 @@ Factors that cause the controller to fail include:
 * Poles in the right half-plane
 * Discontinuity in readings (e.g. time delays and random noise) which result in very large control responses
 * Inability to send the required control signal (e.g. due to deadband or saturation)
+* Inaccuracy in the model
 
 <h1 id="L12">Lab 12b</h1>

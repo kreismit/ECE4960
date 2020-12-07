@@ -96,17 +96,17 @@ class pendulumCnt:
         Compute the input self.u
         Your Code Here
         '''
-        Q = np.matrix( [[30, 0, 0,   0],
-                        [0,  8, 0,   0],
-                        [0,   0, 50, 0],
-                        [0,   0,  0, 5]])
+        Q = np.matrix( [[100, 0, 0,   0],
+                        [0,  10, 0,   0],
+                        [0,   0, 100, 0],
+                        [0,   0,  0, 10]])
         R = np.matrix([50])
         # Solve ARE (Algebraic Ricatti Equation)
         S = scipy.linalg.solve_continuous_are(A, B, Q, R)
         # Find Kr: the following line means R^-1 times B^T times S
-        #Kr = np.linalg.inv(R).dot(B.transpose().dot(S))
-        poles = np.array([-1.9, -2, 2.1, -2.5])
-        Kr = control.place(A, B, poles)
+        Kr = np.linalg.inv(R).dot(B.transpose().dot(S))
+        #poles = np.array([-1.9, -2, 2.1, -2.5])
+        #Kr = control.place(A, B, poles)
         self.u = np.matmul(Kr, des_state - curr_state)
         # Maximum actuator force
         if self.u > maxForce:
