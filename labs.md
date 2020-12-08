@@ -3558,9 +3558,9 @@ First-order solution: ![](https://latex.codecogs.com/svg.latex?v = v_0e^{-bt/m})
 
 ![Change in position during stopping](https://latex.codecogs.com/svg.latex?x-x_{v_0} = -\frac{mv_0}{b}e^{-bt_{stop}/m})
 
-![Stop time from position](https://latex.codecogs.com/svg.latex?-\frac{m}{b}\ln\left|\frac{b}{mv_0}(x-x_{v_0})\right| = t_{stop})
+![Stop time from position](https://latex.codecogs.com/svg.latex?-\frac{m}{b}\ln\mid \frac{b}{mv_0}(x-x_{v_0}) \mid\ = t_{stop})
 
-Equating the two stop times: ![](https://latex.codecogs.com/svg.latex?-\frac{m}{b}\ln\left|\frac{b}{mv_0}(x-x_{v_0})\right| =-\frac{m}{b}\ln\mid\frac{0.05\text{ m/s}}{v_0}\mid)
+Equating the two stop times: ![](https://latex.codecogs.com/svg.latex?-\frac{m}{b}\ln\mid \frac{b}{mv_0}(x-x_{v_0})\mid\ =-\frac{m}{b}\ln\mid\frac{0.05\text{ m/s}}{v_0}\mid)
 
 ![Solving for b](https://latex.codecogs.com/svg.latex?\frac{b}{m\cancel{v_0}}(x-x_{v_0}) =\frac{0.05\text{ m/s}}{\cancel{v_0}} \rightarrow b = \frac{0.05\text{ m/s}\cdot m}{x-x_{v_0}})
 
@@ -3576,7 +3576,7 @@ Thus, I left the damping constant *b* at its original value. The animation with 
 
 Rather than analyzing the motor torque and the wheel radius independently, I choose to treat the robot as a block being pushed by a force whose magnitude is the motor torque &div; the wheel radius.
 
-Given that the maximum incline a robot with medium-drained battery can clime is 45°, finding the motor force becomes a simple statics problem:
+Given that the maximum incline a robot with medium-drained battery can climb is 45°, finding the motor force becomes a simple statics problem:
 
 ![Hand calculations and sketches](Lab11/Images/Lab11_HandCalcs.jpg)
 
@@ -3695,13 +3695,13 @@ Added deadband and saturation effects by modifying the velocity as follows:
 
 ```python
 if zdot > maxVel: # maximum velocity to the right
-            ydot0 = maxVel
-        elif zdot < -maxVel: # maximum velocity to the left
-            ydot0 = -maxVel
-        elif zdot > threshold or zdot < -threshold: # deadband
-            ydot0 = zdot
-        else: # can't move slower than a certain speed
-            ydot0 = 0
+    ydot0 = maxVel
+elif zdot < -maxVel: # maximum velocity to the left
+    ydot0 = -maxVel
+elif zdot > threshold or zdot < -threshold: # deadband
+    ydot0 = zdot
+else: # can't move slower than a certain speed
+    ydot0 = 0
 ```
 
 Also ensured the acceleration term could not be nonzero if `zdot` goes too high in either direction:
@@ -3736,7 +3736,7 @@ Since the LQR controller already minimizes actuator effort, I expected the resul
 
 Figure 10. LQR controller performance (same *Q* and *R* as previously) with force limit.
 
-Though I achieved the same performance with LQR as with pole placement, the simmulation did *not* work the same with pole placement and a force limit! Instead, the simulator ran its four CPU threads near 100% (as usual for unstable systems) and showed this:
+Though I achieved the same performance with LQR as with pole placement, the simulation did *not* work the same with pole placement and a force limit! Instead, the simulator ran its four CPU threads near 100% (as usual for unstable systems) and showed this:
 
 <video width="600" controls><source src="Lab11/Videos/FellOver.mp4" type="video/mp4"></video>
 
@@ -3782,11 +3782,57 @@ Not surprisingly, the LQR control system no longer worked. Again, the pendulum h
     Run with full_output = 1 to get quantitative information.
     warnings.warn(warning_msg, ODEintWarning)
     
-Tried reducing each noise parameter to zero independently, and tried combinations of nonzero noise components. The simulation would only run with all noise parameters set to zero. So, my intended solution of reducing the noise standard deviation in *x* and ![x dot](https://latex.codecogs.com/svg.latex?\dot{x}) by using time-of-flight sensors instead of odometry will not work; the small noise in θ and ![theta dot](https://latex.codecogs.com/svg.latex?\dot{\theta}) also breaks the controller. This is true even for very small noise parameters such as 0.001°.
+Tried reducing each noise parameter to zero independently, and tried combinations of nonzero noise components. The simulation would only run with all noise parameters set to zero. So, my intended solution of reducing the noise standard deviation in *x* and ![x dot](https://latex.codecogs.com/svg.latex?\dot{x}) by using time-of-flight sensors instead of odometry will not work; the small noise in θ and ![theta dot](https://latex.codecogs.com/svg.latex?\dot{\theta}) also breaks the controller. This is true even for very small noise parameters such as σ=0.001° for θ.
+
+##### B Real: Simulating a Bad Model
+
+To simulate the impact of modeling errors, defined two sets of `m1`, `m2`, and `b` parameters and instructed the dynamical system to use the "real" values while the controller does not.
+
+```python
+### pendulumParam.py ###
+m1 = 0.03   # Mass of the pendulum [kg]
+m1Real = 0.04
+m2 = .610   # Mass of the cart [kg]
+m2Real = 0.5
+ell = 1.21  # Length of the rod [m]
+g = -9.81   # Gravity, [m/s^2]
+b = 0.78   # Damping coefficient [Ns]
+bReal = 1
+# ...
+A = np.matrix([[0.0, 1.0, 0.0, 0.0],
+            [0.0, -b/m2, -m1*g/m2, 0.0],
+            [0.0, 0.0, 0.0, 1.0],
+            [0.0, -b/(m2*ell), -(m1+m2)*g/(m2*ell), 0.0]])
+AReal = np.matrix([[0.0, 1.0, 0.0, 0.0],
+            [0.0, -bReal/m2Real,   -m1Real*g/m2Real,                0.0],
+            [0.0, 0.0,              0.0,                            1.0],
+            [0.0, -bReal/(m2*ell), -(m1Real+m2Real)*g/(m2Real*ell), 0.0]])
+B = np.array([[0.0], [1.0/m2], [0.0], [1.0/(m2*ell)]])
+BReal = np.array([[0.0], [1.0/m2Real], [0.0], [1.0/(m2Real*ell)]])
+
+### runSimulation.py ###
+ctrl = pendulumCnt(param=P, m1=P.m1Real, m2=P.m2Real, b=P.bReal, zref=ref.square)
+```
+
+These changes to the parameters did not noticeably affect the performance or the stability of the system.
+
+<video width="600" controls><source src="Lab11/Videos/LQRBadModel.mp4" type="video/mp4"></video>
+
+Figure 14. LQR controller using A and B matrices based on faulty model parameters.
+
+Tried other combinations of parameters (masses and damping all too heavy, all too light, etc.) I had to make the model very bad to destabilize the system &ndash; and it still balanced the pendulum!
+
+<video width="600" controls><source src="Lab11/Videos/ModelTooBad.mp4" type="video/mp4"></video>
+
+Figure 15. LQR controller using m1 = 0.1&times;m1Real, m2 = 0.4&times;m2Real, b = 5&times;bReal.
+
+The LQR controller is quite robust to bad models.
 
 #### What causes the controller to fail?
 
-An unstable controller is usually what cases the simulation to fail (per [Campuswire](https://campuswire.com/c/GBD54AB15/feed/193)). Thus, if the controller breaks, the simulation breaks. This may be confirmed by setting an eigenvalue in the `control.place()` command to a positive number. Integration hangs, the computer begins to heat up, and either an error is thrown or the animation is not displayed a minute or more.
+An unstable controller is usually what cases the simulation to fail (per [Campuswire](https://campuswire.com/c/GBD54AB15/feed/193)). Thus, if the controller breaks, the simulation breaks.
+
+This may be confirmed by setting an eigenvalue in the `control.place()` command to a positive number. Integration hangs, the computer begins to heat up, and either an error is thrown or the animation is not displayed a minute or more: the symptoms are consistent.
 
 ```python
 poles = np.array([-1.9, -2, 2.1, -2.5])
@@ -3797,8 +3843,17 @@ self.u = np.matmul(Kr, des_state - curr_state)
 Factors that cause the controller to fail include:
 
 * Poles in the right half-plane
-* Discontinuity in readings (e.g. time delays and random noise) which result in very large control responses
-* Inability to send the required control signal (e.g. due to deadband or saturation)
-* Inaccuracy in the model
+* Inability to send the required control signal (due to deadband or saturation)
+* Discontinuity in readings (e.g. random noise) which result in very large control responses
+* Time delays or insufficient update time (a.k.a. right-half-plane zeros)
+* Serious inaccuracy in model parameters (factors of 2 or more)
+* Improper sensor calibration / drift / non-Gaussian noise
+* Other unexpected factors:
+    * Vibration and non-rigidity of components
+    * Instability of the robot chassis (flipping and tipping)
+    * Bad electrical connections
+    * *1/f* noise
 
 <h1 id="L12">Lab 12b</h1>
+
+Note that most of the failure modes for the controller above boil down to bad state estimation! This lab intends to fix that problem.

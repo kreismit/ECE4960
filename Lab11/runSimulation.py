@@ -18,7 +18,7 @@ from signalGenerator import signalGen
 
 #Initialize and rename for convenience
 ref = signalGen(amplitude=.5, frequency=0.05, y_offset=0) 
-ctrl = pendulumCnt(param=P,zref=ref.square)
+ctrl = pendulumCnt(param=P, m1=P.m1Real, m2=P.m2Real, b=P.bReal, zref=ref.square)
 
 plt.close('all')
 animation = pendulumAn()
