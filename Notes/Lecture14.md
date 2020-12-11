@@ -68,4 +68,4 @@ If the real part of *any* of the eigenvalues of the matrix $A$ (any of the numbe
 
 Let $\tilde{A} = e^{A \Delta t}$, where $\Delta t$ is the time step of the discrete system. Then, we can make this a difference equation instead of a (continuous) differential equation: each step, multiply by $\tilde{A}$. With our handy-dandy transformation, that's as simple as multiplying by eigenvalues.
 
-Then, the system is stable when the eigenvalues are within a circle (with radius 1?) rather than when the eigenvalues are in the right half-plane.
+Then, the system is stable when the eigenvalues are within a circle (with radius 1) rather than when the eigenvalues are in the right half-plane.
