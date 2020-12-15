@@ -127,8 +127,8 @@ Use the state-space equation
 $$\dot{x} = Ax+Bu$$
 
 $$F = ma; \qquad \tau=I\alpha=I\ddot{\theta}$$
-$$ u=\dot{theta}c=I\ddot{theta}$$
-$$ \ddot{theta}=\frac{-\dot{theta}}{I}+\frac{1}{I}u$$
+$$ u=\dot{\theta}c=I\ddot{\theta}$$
+$$ \ddot{\theta}=\frac{-\dot{\theta}}{I}+\frac{1}{I}u$$
 That's our equation of motion.
 
 Back to our state space.

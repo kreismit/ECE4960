@@ -3857,3 +3857,16 @@ Factors that cause the controller to fail include:
 <h1 id="L12">Lab 12b</h1>
 
 Note that most of the failure modes for the controller above boil down to bad state estimation! This lab intends to fix that problem.
+
+## Materials
+
+* Computer, running Python 3.6 or higher, with these additional libraries:
+    * [`numpy`](https://pypi.org/project/numpy/)
+    * [`scipy`](https://pypi.org/project/scipy/)
+    * [`matplotlib`](https://pypi.org/project/matplotlib/)
+    * [`control`](https://pypi.org/project/control/)
+    
+## Procedure
+
+* Downloaded [lab code](https://cei-lab.github.io/ECE4960/ECE4960_Lab12b.zip)
+* Familiarized myself with code; test-ran
