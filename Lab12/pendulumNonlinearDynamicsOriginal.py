@@ -1,8 +1,7 @@
-# This file runs the nonlinear pendulum dynamics 
+# This file runs the nonlinea pendulum dynamics 
 # You can add process noise here (line 60)
 
 import numpy as np
-from pendulumParam import maxVel, threshold
 
 class Pendulum:
 
@@ -44,41 +43,18 @@ class Pendulum:
         #unpack the state (named x in lectures)
         z, zdot, theta, thetadot = x
         theta = theta+np.pi #treat 0 as upward
-        #print("theta=",theta)
-        #print(type(theta))
-        
         
         #simplifications for the calculations - constants
-        Sy = np.sin(theta)
-        Cy = np.cos(theta)
-        #print("Sy=",Sy)
-        #print(type(Sy))
+        Sy = np.sin(theta[0])
+        Cy = np.cos(theta[0])
         D = self.m1*self.ell*self.ell*(self.m2+self.m1*(1.0-Cy*Cy))
 
         #calculating state values at the current time step
-        if zdot > maxVel: # maximum velocity to the right
-            ydot0 = maxVel
-        elif zdot < -maxVel: # maximum velocity to the left
-            ydot0 = -maxVel
-        elif zdot > threshold or zdot < -threshold: # deadband
-            ydot0 = zdot
-        else: # can't move slower than a certain speed
-            ydot0 = 0
+        ydot0 = zdot
         ydot1 = (1.0/D)*(-self.m1*self.m1*self.ell*self.ell*self.g*Cy*Sy + self.m1*self.ell*self.ell*(self.m1*self.ell*thetadot*thetadot*Sy - self.b*zdot)) + self.m1*self.ell*self.ell*(1.0/D)*u
-        if zdot > maxVel: # maximum velocity to the right
-            ydot1 = 0 # can't accelerate any more
-        elif zdot < -maxVel: # maximum velocity to the left
-            ydot1 = 0 # can't accelerate any more
         ydot2 = thetadot
-        ydot3 = (1.0/D)*((self.m1+self.m2)*self.m1*self.g*self.ell*Sy    - self.m1*self.ell*Cy*(self.m1*self.ell*thetadot*thetadot*Sy - self.b*zdot)) - self.m1*self.ell*Cy*(1.0/D)*u
-        #print("u=",u)
-        #print(type(u))
-        ydot0 = float(ydot0)
-        ydot1 = float(ydot1)
-        ydot2 = float(ydot2)
-        ydot3 = float(ydot3)
-        dydt = np.array([[ydot0], [ydot1], [ydot2], [ydot3]])
-        #print("dydt=",dydt)
+        ydot3 = (1.0/D)*((self.m1+self.m2)*self.m1*self.g*self.ell*Sy    - self.m1*self.ell*Cy*      (self.m1*self.ell*thetadot*thetadot*Sy - self.b*zdot)) - self.m1*self.ell*Cy*(1.0/D)*u
+        dydt = [ydot0, ydot1, ydot2, ydot3]
         #with process noise:
         #dydt = [ydot0 + np.random.randn()*0.01, ydot1 + np.random.randn()*0.01, ydot2 + np.random.randn()*0.01, ydot3 + np.random.randn()*0.01]
         return dydt

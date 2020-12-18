@@ -5,40 +5,26 @@
 # on a plot that compares the actual output with the reference input
 
 import numpy as np
-import scipy
 import sys
 sys.path.append('..')  # add parent directory
 import matplotlib.pyplot as plt
 import control
 import pendulumParam as P
 from kalmanFilter import kalmanFilter
-from pendulumNonlinearDynamics import Pendulum
+from pendulumNonlinearDynamicsOriginal import Pendulum
 from pendulumAnimation import pendulumAn
 from plotDataZ import plotData      
 from signalGenerator import signalGen
-from pendulumParam import A, B, C, maxForce
 
 #Compute controller
-Q = np.array( [[100, 0, 0,   0],
-                [0,  10, 0,   0],
-                [0,   0, 100, 0],
-                [0,   0,  0, 10]])
-R = np.array([[50]])
-# Solve ARE (Algebraic Ricatti Equation)
-S = scipy.linalg.solve_continuous_are(A, B, Q, R)
-# Find Kr: the following line means R^-1 times B^T times S
-Kr = np.linalg.inv(R).dot(B.transpose().dot(S))
-#poles = np.array([-1.9, -2, -2.1, -2.5])
-#Kr = control.place(A, B, poles)
-#print("Kr=",Kr)
-#print(type(Kr))
+dpoles = np.array([-1.1,-1.2,-1.3,-1.4])
+Kr = control.place(P.A,P.B,dpoles)
 
 #Initialize and rename for convenience
 ref = signalGen(amplitude=.5, frequency=0.05, y_offset=0) 
 pendulum = Pendulum(param=P)
 
 states = [np.array([[P.z0], [P.zdot0], [P.theta0], [P.thetadot0]])]
-#print("states=",states)
 states_est = [states[0]]
 mu = np.array([[P.z0], [P.zdot0], [P.theta0], [P.thetadot0]])
 sigma = np.eye(4)*0.00001
@@ -51,32 +37,15 @@ dt=t_array[1] - t_array[0]
 
 for t in t_array[:-1]:
     des_state = np.array([[ref.square(t)[0]], [0.0], [0.0], [0.0]])
-    #print("des_state=",des_state)
-    #print(type(des_state))
     old_state=states[-1]
-    #print("states=",states)
-    #print(type(states))
 
     #Update controller and sensors every <T_update> seconds
     if (t % P.T_update) < dt:
-        u=np.matmul(Kr,des_state-mu)
-        #u = float(u)
-        # equivalently, u=-Kr.dot(mu-des_state)
-        #print("u=",u)
-        #print(type(u))
-        # Maximum actuator force
-        if u > maxForce:
-            u = maxForce
-        elif u < -maxForce:
-            u = -maxForce
+        u=-Kr.dot(mu-des_state)
         y_kf = P.C.dot(old_state)
         mu,sigma = kalmanFilter(mu,sigma,u,y_kf)
-    #print("old_state=",old_state)
-    #print(type(old_state))
-    #print("Output from cartpendfunc:\n",pendulum.cartpendfunc(old_state,u))
+    
     new_state=old_state + np.array(pendulum.cartpendfunc(old_state,u)) * dt
-    #print("new_state=",new_state)
-    #print(type(new_state))
     
     #Arrays for debugging
     states_est.append(mu)

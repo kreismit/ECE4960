@@ -8,11 +8,14 @@ from scipy import signal
 
 #Physical parameters of the inverted pendulum known to the controller
 m1 = 0.03   # Mass of the pendulum [kg]
-m2 = .475   # Mass of the cart [kg] 
+m2 = .610   # Mass of the cart [kg] 
 ell = 1.21  # Length of the rod [m]
 g = -9.81   # Gravity, [m/s^2]
 b = 0.78   # Damping coefficient [Ns]
 T_update = 0.001 # Controller and Estimator update rate [s]
+maxVel = 3.5 # maximum linear speed of robot (m/s)
+threshold = 0.05 # minimum linear speed of robot (m/s)
+maxForce = 8.46 # maximum actuator force (N)
 
 #parameters for animation
 w = 0.15      # Width of the cart [m]
@@ -39,7 +42,7 @@ thetadot0 = 0.0         # [rads/s]
 #y = C*x
 #x = [z, zdot, theta, thetadot]
 
-A = np.matrix([[0.0, 1.0, 0.0, 0.0],
+A = np.array([[0.0, 1.0, 0.0, 0.0],
             [0.0, -b/m2, -m1*g/m2, 0.0],
             [0.0, 0.0, 0.0, 1.0],
             [0.0, -b/(m2*ell), -(m1+m2)*g/(m2*ell), 0.0]])
@@ -47,6 +50,6 @@ A = np.matrix([[0.0, 1.0, 0.0, 0.0],
 B = np.array([[0.0], [1.0/m2], [0.0], [1.0/(m2*ell)]])
 
 #Measure everything
-#C = np.matrix([[1.0, 0.0, 0.0, 0.0],[0.0, 1.0, 0.0, 0.0],[0.0, 0.0, 1.0, 0.0],[0.0, 0.0, 0.0, 1.0]]) 
+#C = np.array([[1.0, 0.0, 0.0, 0.0],[0.0, 1.0, 0.0, 0.0],[0.0, 0.0, 1.0, 0.0],[0.0, 0.0, 0.0, 1.0]]) 
 #Measure one state only
-C = np.matrix([[0.0, 0.0, 0.0, 1.0]]) 
+C = np.array([[0.0, 0.0, 0.0, 1.0]]) 

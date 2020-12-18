@@ -3869,4 +3869,6 @@ Note that most of the failure modes for the controller above boil down to bad st
 ## Procedure
 
 * Downloaded [lab code](https://cei-lab.github.io/ECE4960/ECE4960_Lab12b.zip)
-* Familiarized myself with code; test-ran
+* Familiarized myself with code; test-ran the simulation.
+* Programmed the code to output the observability matrix.
+* Added my LQR controller from the previous lab to the Kalman filter code.

@@ -55,8 +55,8 @@ class pendulumAn:
             self.handle[0].set_xy(xy)         # Update patch
 
     def drawRod(self, z, theta):
-        X = [z, z+P.ell*np.sin(theta)]                      # X data points
-        Y = [(P.gap+P.h), (P.gap+P.h)-P.ell*np.cos(theta)]  # Y data points
+        X = [z, z+P.ell*np.sin(theta[0])]                      # X data points
+        Y = [(P.gap+P.h), (P.gap+P.h)-P.ell*np.cos(theta[0])]  # Y data points
 
         # When the class is initialized, a line object is created and
         # added to the axes.
@@ -70,8 +70,8 @@ class pendulumAn:
             self.handle[2].set_ydata(Y)
             
     def drawCircle(self, z, theta):
-        x = z+(P.ell+P.radius)*np.sin(theta)            # x coordinate
-        y = (P.gap+P.h)-(P.ell+P.radius)*np.cos(theta)  # y coordinate
+        x = z+(P.ell+P.radius)*np.sin(theta[0])            # x coordinate
+        y = (P.gap+P.h)-(P.ell+P.radius)*np.cos(theta[0])  # y coordinate
         xy = (x,y)                                      # Center of circle
 
         # When the class is initialized, a CirclePolygon patch object is
