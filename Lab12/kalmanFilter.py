@@ -5,8 +5,8 @@ import numpy as np
 import pendulumParam as P
 import scipy
 
-sigma_u = np.diag([0.1,0.1,0.1,0.1])
-sigma_n = np.diag([0.1])
+sigma_u = np.diag([0.5, 0.1, 0.1, 0.1])
+sigma_n = np.diag([5*np.pi/180])
 Ad = scipy.linalg.expm(P.A*P.T_update)
 Bd = P.B*P.T_update
 

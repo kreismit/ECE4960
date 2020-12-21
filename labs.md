@@ -2502,7 +2502,7 @@ The other two tasks, moving the robot and getting odometry pose, were accomplish
 
 ```python
 
-`def move(linSpeed, angSpeed, thisLong):
+def move(linSpeed, angSpeed, thisLong):
     # Drive a certain distance with a certain curvature, and then stop.
     global rX, rTh, howLong
     rX = linSpeed
@@ -3871,4 +3871,136 @@ Note that most of the failure modes for the controller above boil down to bad st
 * Downloaded [lab code](https://cei-lab.github.io/ECE4960/ECE4960_Lab12b.zip)
 * Familiarized myself with code; test-ran the simulation.
 * Programmed the code to output the observability matrix.
-* Added my LQR controller from the previous lab to the Kalman filter code.
+* Added my LQR controller from the previous lab to the Kalman filter code; debugged.
+  Note: this controller included deadband and saturation.
+* Chose normally distributed noise based on readings from the real XL and gyro.
+* Tested Kalman filter with position discrepancy, measurement noise, and process noise.
+* 
+
+(Not necessarily in order.)
+
+## Results
+
+New *A* and *B* matrices are calculated in the Kalman filter code because the Kalman filter exists in discrete time, while the original A and B for the system are for continuous time. This is why the A and B of the Kalman filter code are named `Ad` and `Bd`.
+
+We directly measure only ![theta dot](https://latex.codecogs.com/svg.latex?\dot{\theta}). This can be read off the *C* matrix:
+```python
+#Measure one state only
+C = np.array([[0.0, 0.0, 0.0, 1.0]]) 
+```
+since the state vector is
+
+    x = [z, zdot, theta, thetadot]
+
+Thus, not only the true angle of θ, but also the position and its derivative must be estimated using only the pendulum gyroscope output!
+
+However, the Kalman filter works well. Below is a screen capture of its performance with my LQR controller (including simulated deadband and saturation) from [Lab 11](#L11):
+
+
+<video width="600" controls><source src="Lab12/Videos/Initial.mp4">Where's my video?</video>
+
+Figure 1. LQG performance with no noise or error.
+
+
+Indeed, the observability matrix for the system is not full rank!
+```python
+# In runSimulation.py
+O = control.obsv(A,C) # A and C are imported from pendulumParam.py
+yn = ["is not", "is"]
+RO = np.linalg.matrix_rank(O)
+print("The observability matrix {} observable. Its rank is {}".format(yn[RO==4],RO))
+print(O) 
+```
+
+    The observability matrix is not observable. Its rank is 3
+    [[  0.           0.           0.           1.        ]
+     [  0.          -1.05676738   8.50616448   0.        ]
+     [  0.           1.35127632  -0.50984695   8.50616448]
+     [  0.         -10.71689863  73.00676954  -0.50984695]]
+
+Thus, *z* cannot be estimated from this data since the robot could start anywhere and even be moving while the pendulum is balanced. Since a perfectly balanced pendulum requires no acceleration of the cart, the velocity could be nonzero without affecting the tilt of the pendulum.
+
+I chose to use 5°/s as the gyroscope (θ) standard deviation, due to periodic up-and-down drift I encountered in [Lab 6](#L6) and following. This is conservative since I rarely observed this much drift even after a bad calibration; yet it is less than the default Σ.
+
+    sigma_n = np.diag([5*np.pi/180])
+
+As for the process noise, since the cart velocity is controlled directly, its process noise is relatively low at 0.1 m/s. However, the position error is 0.5 m due to the difficulty of open-loop control; the errors in θ and ![theta dot](https://latex.codecogs.com/svg.latex?\dot{\theta}) are also larger at 0.5 each since they must be estimated.
+
+    sigma_u = np.diag([0.5, 0.1, 0.1, 0.1])
+
+<video width="600" controls><source src="Lab12/Videos/Sigmas.mp4">Where's my video?</video>
+
+Figure 2. With increased Σ values in the prediction step, the Kalman filter performed nearly the same as before.
+
+
+Adding 0.5 m to the initial *z* offset the entire simulation. The Kalman filter did not converge to the correct position, as expected since the *z* state is not observable. Added the following line to `runSimulation.py`.
+
+    states[0][0,0] += 0.5 # start out in the wrong place
+
+Changing the actual initial state adds an offset to the estimation because the Kalman filter only receives `y` (as measured) and `u` as inputs. It does not see the actual `x` state vector.
+
+<video width="600" controls><source src="Lab12/Videos/ZOffset.mp4">Where's my video?</video>
+
+Figure 3. The simulated Kalman filter does not know it's wrong.
+
+Adding errors to the other states generated more fun results. ![theta dot](https://latex.codecogs.com/svg.latex?\dot{\theta}) converged very quickly, as it is measured directly.
+
+
+<video width="600" controls><source src="Lab12/Videos/ThdOffset.mp4">Where's my video?</video>
+
+Figure 4. Starting offset to ![theta dot](https://latex.codecogs.com/svg.latex?\dot{\theta}).
+
+
+Surprisingly to me, an error in θ also converged quickly.
+
+
+<video width="600" controls><source src="Lab12/Videos/ThOffset.mp4">Where's my video?</video>
+
+Figure 5. Starting offset to θ.
+
+
+Lastly, a starting error in ![z dot](https://latex.codecogs.com/svg.latex?\dot{z}) had odd results, but still converged. Again, *z* is not observable, so the consequence was a permanent error in *z*.
+
+
+<video width="600" controls><source src="Lab12/Videos/ZdOffset.mp4">Where's my video?</video>
+
+Figure 6. Starting error in ![z dot](https://latex.codecogs.com/svg.latex?\dot{z}).
+
+
+Adding process and measurement noise made the filter act up more.
+
+```python
+# in pendulumNonlinearDynamics.py
+dydt = np.array([[ydot0 + np.random.randn()*0.01], 
+[ydot1 + np.random.randn()*0.01],
+[ydot2 + np.random.randn()*0.01],
+[ydot3 + np.random.randn()*0.01]]) # default values
+```
+
+gave the following result:
+
+<video width="600" controls><source src="Lab12/Videos/Noise0.01.mp4">Where's my video?</video>
+
+Figure 7. Small (0.01 each) process noise.
+
+
+The Kalman filter (and better simulation code) allowed the simulation to run without crashing or going unstable in the presence of some noise.
+
+However, adding in the noise values I estimated from the results of Labs 6-10:
+
+```python
+# in pendulumNonlinearDynamics.py
+dydt = np.array([[ydot0 + np.random.randn()*0.5], # 1/2 m noise
+[ydot1 + np.random.randn()*0.25],    # 1/4 m/s noise
+[ydot2 + np.random.randn()*0.174], # 10 deg noise
+[ydot3 + np.random.randn()*0.087]]) # 5 deg/s
+```
+
+
+<video width="600" controls><source src="Lab12/Videos/RealisticNoise.mp4">Where's my video?</video>
+
+Figure 8. Realistic process noise values.
+
+The pendulum still balanced. Note, again, that saturation and deadband values have been present the whole time.
+
+

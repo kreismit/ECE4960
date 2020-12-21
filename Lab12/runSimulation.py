@@ -38,6 +38,7 @@ ref = signalGen(amplitude=.5, frequency=0.05, y_offset=0)
 pendulum = Pendulum(param=P)
 
 states = [np.array([[P.z0], [P.zdot0], [P.theta0], [P.thetadot0]])]
+#states[0][1,0] += 0.5 # start out in the wrong place
 #print("states=",states)
 states_est = [states[0]]
 mu = np.array([[P.z0], [P.zdot0], [P.theta0], [P.thetadot0]])
@@ -48,6 +49,12 @@ u=0
 length = int((P.t_end-P.t_start)/P.Ts)              #The number of time steps over the time interval
 t_array = np.linspace(P.t_start, P.t_end, length)   #The time vector for integration.
 dt=t_array[1] - t_array[0]
+
+#O = control.obsv(A,C) # A and C are imported from pendulumParam.py
+#yn = ["is not", "is"]
+#RO = np.linalg.matrix_rank(O)
+#print("The observability matrix {} observable. Its rank is {}".format(yn[RO==4],RO)) 
+#print(O)
 
 for t in t_array[:-1]:
     des_state = np.array([[ref.square(t)[0]], [0.0], [0.0], [0.0]])

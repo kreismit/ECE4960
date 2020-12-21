@@ -73,14 +73,18 @@ class Pendulum:
         ydot3 = (1.0/D)*((self.m1+self.m2)*self.m1*self.g*self.ell*Sy    - self.m1*self.ell*Cy*(self.m1*self.ell*thetadot*thetadot*Sy - self.b*zdot)) - self.m1*self.ell*Cy*(1.0/D)*u
         #print("u=",u)
         #print(type(u))
+        #dydt = [ydot0, ydot1, ydot2, ydot3]
         ydot0 = float(ydot0)
         ydot1 = float(ydot1)
         ydot2 = float(ydot2)
         ydot3 = float(ydot3)
-        dydt = np.array([[ydot0], [ydot1], [ydot2], [ydot3]])
+        #dydt = np.array([[ydot0], [ydot1], [ydot2], [ydot3]]) # no noise
         #print("dydt=",dydt)
         #with process noise:
-        #dydt = [ydot0 + np.random.randn()*0.01, ydot1 + np.random.randn()*0.01, ydot2 + np.random.randn()*0.01, ydot3 + np.random.randn()*0.01]
+        dydt = np.array([[ydot0 + np.random.randn()*0.5], # 1/2 m noise
+        [ydot1 + np.random.randn()*0.25],    # 1/4 m/s noise
+        [ydot2 + np.random.randn()*0.174], # 10 deg noise
+        [ydot3 + np.random.randn()*0.087]]) # 5 deg/s
         return dydt
 
 
