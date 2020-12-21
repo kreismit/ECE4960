@@ -77,6 +77,11 @@ for t in t_array[:-1]:
         elif u < -maxForce:
             u = -maxForce
         y_kf = P.C.dot(old_state)
+        
+        y_kf[0,0] += np.random.randn()*0.001 # ±1mm ToF noise
+        y_kf[1,0] += np.random.randn()*0.04 # ±2°/s gyro noise
+        #y_kf += np.random.randn()*0.04 # ±2°/s gyro noise (1 DoF)
+        
         mu,sigma = kalmanFilter(mu,sigma,u,y_kf)
     #print("old_state=",old_state)
     #print(type(old_state))

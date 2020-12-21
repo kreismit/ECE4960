@@ -81,10 +81,10 @@ class Pendulum:
         #dydt = np.array([[ydot0], [ydot1], [ydot2], [ydot3]]) # no noise
         #print("dydt=",dydt)
         #with process noise:
-        dydt = np.array([[ydot0 + np.random.randn()*0.5], # 1/2 m noise
-        [ydot1 + np.random.randn()*0.25],    # 1/4 m/s noise
-        [ydot2 + np.random.randn()*0.174], # 10 deg noise
-        [ydot3 + np.random.randn()*0.087]]) # 5 deg/s
+        dydt = np.array([[ydot0 + np.random.randn()*0.01], # 1 cm noise
+        [ydot1 + np.random.randn()*0.05],       # 0.05 m/s noise
+        [ydot2 + np.random.randn()*0.087],      # 5° noise
+        [ydot3 + np.random.randn()*0.009]])     # 0.5°/s
         return dydt
 
 

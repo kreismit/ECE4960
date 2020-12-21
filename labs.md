@@ -3875,7 +3875,9 @@ Note that most of the failure modes for the controller above boil down to bad st
   Note: this controller included deadband and saturation.
 * Chose normally distributed noise based on readings from the real XL and gyro.
 * Tested Kalman filter with position discrepancy, measurement noise, and process noise.
-* 
+* Tested Kalman filter with measurement & process noise plus modeling errors.
+* Tested Kalman filter with measurement & process noise plus increased update time.
+* Tested Kalman filter with both ![theta dot](https://latex.codecogs.com/svg.latex?\dot{\theta}) and *z* feedback.
 
 (Not necessarily in order.)
 
@@ -3932,6 +3934,7 @@ As for the process noise, since the cart velocity is controlled directly, its pr
 
 Figure 2. With increased Σ values in the prediction step, the Kalman filter performed nearly the same as before.
 
+### Offset
 
 Adding 0.5 m to the initial *z* offset the entire simulation. The Kalman filter did not converge to the correct position, as expected since the *z* state is not observable. Added the following line to `runSimulation.py`.
 
@@ -3966,8 +3969,7 @@ Lastly, a starting error in ![z dot](https://latex.codecogs.com/svg.latex?\dot{z
 
 Figure 6. Starting error in ![z dot](https://latex.codecogs.com/svg.latex?\dot{z}).
 
-
-Adding process and measurement noise made the filter act up more.
+### Noise
 
 ```python
 # in pendulumNonlinearDynamics.py
@@ -3977,7 +3979,7 @@ dydt = np.array([[ydot0 + np.random.randn()*0.01],
 [ydot3 + np.random.randn()*0.01]]) # default values
 ```
 
-gave the following result:
+This addition of process noise the following result:
 
 <video width="600" controls><source src="Lab12/Videos/Noise0.01.mp4">Where's my video?</video>
 
@@ -3991,16 +3993,183 @@ However, adding in the noise values I estimated from the results of Labs 6-10:
 ```python
 # in pendulumNonlinearDynamics.py
 dydt = np.array([[ydot0 + np.random.randn()*0.5], # 1/2 m noise
-[ydot1 + np.random.randn()*0.25],    # 1/4 m/s noise
-[ydot2 + np.random.randn()*0.174], # 10 deg noise
-[ydot3 + np.random.randn()*0.087]]) # 5 deg/s
+[ydot1 + np.random.randn()*0.25],       # 1/4 m/s noise
+[ydot2 + np.random.randn()*0.174],      # 10 deg noise
+[ydot3 + np.random.randn()*0.087]])     # 5 deg/s
 ```
 
 
 <video width="600" controls><source src="Lab12/Videos/RealisticNoise.mp4">Where's my video?</video>
 
-Figure 8. Realistic process noise values.
+Figure 8. Realistic, maybe conservative, process noise values.
 
 The pendulum still balanced. Note, again, that saturation and deadband values have been present the whole time.
 
 
+<video width="600" controls><source src="Lab12/Videos/ProcessSensorNoise.mp4">Where's my video?</video>
+
+Figure 9. Realistic sensor noise value, conservative process noise
+
+
+Note that the process noise for the pendulum may be unrealistically high, since the noise estimate came from the sensor noise. A real pendulum does not move very much. So, I decreased the θ and ![theta dot](https://latex.codecogs.com/svg.latex?\dot{\theta}) process noise for the remainder of the lab.
+
+
+```python
+# in pendulumNonlinearDynamics.py
+dydt = np.array([[ydot0 + np.random.randn()*0.5], # 1/2 m noise
+[ydot1 + np.random.randn()*0.25],       # 1/4 m/s noise
+[ydot2 + np.random.randn()*0.087],      # 5° noise
+[ydot3 + np.random.randn()*0.035]])     # 2°/s
+```
+
+### Model Error
+
+Adjusting *A* and *B* had similar effects to a constant offset. I adjusted the diagonal values of A and all the values of B by random constants.
+
+```python
+# In kalmanFilter.py
+A = P.A
+B = P.B
+for i in range(4):
+    A[i,i] += np.random.randn()*0.05
+    B[i,0] += np.random.randn()*0.05 # add one-time random error to A, B
+Ad = scipy.linalg.expm(A*P.T_update)
+Bd = B*P.T_update
+```
+
+<video width="600" controls><source src="Lab12/Videos/TweakAB.mp4">Where's my video?</video>
+
+Figure 10. A and B randomly adjusted. Here, the noise is still present, so it's hard to tell the difference between this and the sensor noise.
+
+
+<video width="600" controls><source src="Lab12/Videos/TweakABMore.mp4">Where's my video?</video>
+
+Figure 11. A and B randomly adjusted, with model noise doubled. No process noise this time.
+
+<video width="600" controls><source src="Lab12/Videos/TweakABTooMuch.mp4">Where's my video?</video>
+
+Figure 12. A and B randomly adjusted, with model noise 0.5. No process noise. That was too much.
+
+Failing parameters:
+
+    Real A and B:
+    [[ 0.          1.          0.          0.        ]
+     [ 0.         -1.27868852  0.48245902  0.        ]
+     [ 0.          0.          0.          1.        ]
+     [ 0.         -1.05676738  8.50616448  0.        ]]
+    [[0.        ]
+     [1.63934426]
+     [0.        ]
+     [1.35482997]]
+    A and B with noise:
+    [[ 0.40827072  1.          0.          0.        ]
+     [ 0.         -2.00623195  0.48245902  0.        ]
+     [ 0.          0.         -0.18767243  1.        ]
+     [ 0.         -1.05676738  8.50616448  0.75239143]]
+    [[-0.15350993]
+     [ 1.74622768]
+     [ 0.31944639]
+     [ 1.18057743]]
+
+Still stable:
+
+    Real A and B:
+    [[ 0.          1.          0.          0.        ]
+     [ 0.         -1.27868852  0.48245902  0.        ]
+     [ 0.          0.          0.          1.        ]
+     [ 0.         -1.05676738  8.50616448  0.        ]]
+    [[0.        ]
+     [1.63934426]
+     [0.        ]
+     [1.35482997]]
+    A and B with noise:
+    [[-0.13277644  1.          0.          0.        ]
+     [ 0.         -1.69628804  0.48245902  0.        ]
+     [ 0.          0.          0.22684797  1.        ]
+     [ 0.         -1.05676738  8.50616448  0.07961173]]
+    [[-0.15261747]
+     [ 1.62024987]
+     [ 0.13437356]
+     [ 1.55003769]]
+
+LQG is quite robust to modeling error. It took about 50% added random error to destabilize the controller, and 30% random error (0.3 std. dev.) did not destabilize it. Also note that increasing the sensor standard deviation in the Kalman filter made it converge faster.
+
+Returning the model error to a small nonzero value, and the process and measurement noise to realistic values, increasing *T_update* to only 2 ms made the controller horizontally unstable.
+
+
+<video width="600" controls><source src="Lab12/Videos/TimeDelayUnstable.mp4">Where's my video?</video>
+
+Figure 13. *T_update* increased from 0.001 to 0.002.
+
+
+At this point, the process and sensor noise had to be lessened for the system to remain stable. I had accidentally set the sensor noise to 0.5 rad/s (forgetting units) so changing it to 5°/s, the controller remained stable for *T_update* = 0.002 s. Any more than this, and the controller destabilized. I cannot reasonably decrease the process or sensor noise values any more considering my experience.
+
+<video width="600" controls><source src="Lab12/Videos/TimeDelayStable.mp4">Where's my video?</video>
+
+Figure 14. 2 ms is the longest *T_update* even with improved noise parameters.
+
+
+```python
+# In runSimulation.py (in loop)
+y_kf += np.random.randn()*0.04 # ±2° gyro noise
+# In pendulumNonlinearDynamics.py
+dydt = np.array([[ydot0 + np.random.randn()*0.25], # 1/4 m noise
+[ydot1 + np.random.randn()*0.1],        # 0.1 m/s noise
+[ydot2 + np.random.randn()*0.087],      # 5° noise
+[ydot3 + np.random.randn()*0.009]])     # 0.5°/s
+return dydt
+```
+
+**Update: I was increasing `Ts`, the simulation sample time, not `T_update`. Fixing this fixed the problem.**
+
+
+<video width="600" controls><source src="Lab12/Videos/LQG1sensor20ms.mp4">Where's my video?</video>
+
+Figure 14. LQG with one DoF is quite shaky. *T_update* = 20 ms.
+
+Saturation is not an issue here because the noise is being added to the *process*, not the sensor. In real life the process noise would change continuously, but the simulation picks discontinuous random variables. To make the simulation look more realistic, I reduced the process noise. It worked even with a 50 ms sample rate.
+
+<video width="600" controls><source src="Lab12/Videos/LQG1sensorUnstable.mp4">Where's my video?</video>
+
+Figure 15. LQG with one DoF, finally unstable at *T_update* = 100 ms. Process noise is reduced.
+
+
+### More measurements
+
+I would like to measure the *z* position as well as ![theta dot](https://latex.codecogs.com/svg.latex?\dot{\theta}) since controller went unstable in *z* before *θ*. Using a ToF sensor gives a second value in *y* with sensor noise of about 0.001 m.
+
+```python
+# In runSimulation.py loop
+y_kf[0,0] += np.random.randn()*0.001 # ±1mm ToF noise
+y_kf[1,0] += np.random.randn()*0.04 # ±2°/s gyro noise
+
+# In pendulumParam.py
+# Measure theta dot and z
+C = np.array([[1.0, 0.0, 0.0, 0.0],[0.0, 0.0, 0.0, 1.0]])
+
+# In kalmanFilter.py
+sigma_u = np.diag([0.1, 0.1, 0.1, 0.1]) # less std. dev. for position control
+sigma_n = np.diag([0.001, 5*np.pi/180]) # 2-D now
+```
+
+I was then able to decrease the process noise for `z` and `zdot` respectively, since these can now be position-controlled.
+
+The controller was solid at 10 ms with reasonable noise (as shown above), and not terribly shaky at *T_update* = 20 ms.
+
+
+<video width="600" controls><source src="Lab12/Videos/LQG2sensors20ms.mp4">Where's my video?</video>
+
+Figure 16. LQG with the ability to sense *z*. *T_update* = 20 ms (50 Hz measurement rate, close to the maximum sample rate of the real sensor.)
+
+
+I thought this observer would behave better at large *T_update* than the one-DoF observer, but at 50 ms, it appears unstable. At *T_update* higher than 50 ms, it becomes obviously unstable. My hypothesis is that this occurs because the controller corrects too much for changes in *x* now that they cannot be attributed to noise.
+
+<video width="600" controls><source src="Lab12/Videos/LQG2sensors50ms.mp4">Where's my video?</video>
+
+Figure 17. LQG, with two sensors, at the borderline of stability.
+
+A better way to implement this is to measure *z* once every 100 ms (close to the real sampling rate) 
+
+### Conclusion
+
+Although LQG works well in simulation, even at fairly slow sampling rates, it will not work as well in real life due to slosh and nonlinearities in the drivetrain. These things are more difficult to model. And, as the above examples show, the sample rate is very important. A high sample rate is difficult to achieve with Bluetooth communication, so Bluetooth would likely have to be disabled.

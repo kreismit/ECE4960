@@ -12,7 +12,7 @@ m2 = .610   # Mass of the cart [kg]
 ell = 1.21  # Length of the rod [m]
 g = -9.81   # Gravity, [m/s^2]
 b = 0.78   # Damping coefficient [Ns]
-T_update = 0.001 # Controller and Estimator update rate [s]
+T_update = 0.05 # Controller and Estimator update rate [s]
 maxVel = 3.5 # maximum linear speed of robot (m/s)
 threshold = 0.05 # minimum linear speed of robot (m/s)
 maxForce = 8.46 # maximum actuator force (N)
@@ -52,4 +52,6 @@ B = np.array([[0.0], [1.0/m2], [0.0], [1.0/(m2*ell)]])
 #Measure everything
 #C = np.array([[1.0, 0.0, 0.0, 0.0],[0.0, 1.0, 0.0, 0.0],[0.0, 0.0, 1.0, 0.0],[0.0, 0.0, 0.0, 1.0]]) 
 #Measure one state only
-C = np.array([[0.0, 0.0, 0.0, 1.0]]) 
+#C = np.array([[0.0, 0.0, 0.0, 1.0]])
+# Measure theta dot and z
+C = np.array([[1.0, 0.0, 0.0, 0.0],[0.0, 0.0, 0.0, 1.0]])
