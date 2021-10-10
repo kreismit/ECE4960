@@ -1114,15 +1114,15 @@ Figure 18. Moving much slower than was possible with open-loop control. Note tha
 
 The minimum rotational speed I could maintain was now 50°/s using a PI loop with parameters `kp = 0.75` and `ki = 1.5` with a complementary lag filter using `alpha = 0.5`. This should allow much closer points, even with a 60ms timing budget, as shown below.
 
-250°/s &times; (&pi; rad / 180°) = 4.36 rad/s = <img src="http://latex.codecogs.com/svg.latex?\dot{\theta}" border="0"/>
+250°/s &times; (&pi; rad / 180°) = 4.36 rad/s = <img src="https://latex.codecogs.com/svg.latex?\dot{\theta}" border="0"/>
 
-<img src="http://latex.codecogs.com/svg.latex?\dot{\theta}T_S" border="0"/> = 250°/s &times; (&pi; rad / 180°) &times; 50 ms = 0.218 rad = 12.5°
+<img src="https://latex.codecogs.com/svg.latex?\dot{\theta}T_S" border="0"/> = 250°/s &times; (&pi; rad / 180°) &times; 50 ms = 0.218 rad = 12.5°
 
-<img src="http://latex.codecogs.com/svg.latex?\dot{\theta}T_S" border="0"/> = 250°/s &times; (&pi; rad / 180°) &times; 50 ms &times; 0.5 m = 10.9 cm/s
+<img src="https://latex.codecogs.com/svg.latex?\dot{\theta}T_S" border="0"/> = 250°/s &times; (&pi; rad / 180°) &times; 50 ms &times; 0.5 m = 10.9 cm/s
 
-<img src="http://latex.codecogs.com/svg.latex?\dot{\theta}T_S" border="0"/> = 50°/s &times; (&pi; rad / 180°) &times; 50 ms &times; 0.5 m = 2.2 cm/s
+<img src="https://latex.codecogs.com/svg.latex?\dot{\theta}T_S" border="0"/> = 50°/s &times; (&pi; rad / 180°) &times; 50 ms &times; 0.5 m = 2.2 cm/s
 
-<img src="http://latex.codecogs.com/svg.latex?\dot{\theta}T_S" border="0"/> = 50°/s &times; (&pi; rad / 180°) &times; 60 ms &times; 0.5 m = 2.6 cm/s
+<img src="https://latex.codecogs.com/svg.latex?\dot{\theta}T_S" border="0"/> = 50°/s &times; (&pi; rad / 180°) &times; 60 ms &times; 0.5 m = 2.6 cm/s
 
 ![](Lab6/Images/CalcTrig.jpg)
 
